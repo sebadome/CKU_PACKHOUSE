@@ -1,0 +1,87 @@
+import React, { useEffect, useRef, useState } from 'react';
+import Input from './ui/Input';
+
+interface Props {
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}
+
+const AutocompleteHuerto: React.FC<Props> = ({ value, onChange }) => {
+  const [options, setOptions] = useState<string[]>([]);
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Función que busca opciones en la API
+  const buscar = async (q: string) => {
+    console.log('buscando huertos para:', q);
+    if (!q || q.length < 2) {
+      setOptions([]);
+      setOpen(false);
+      return;
+    }
+
+    const url = `http://localhost:3001/api/catalogo/autocomplete?campo=huerto&q=${(q)}`;
+    console.log('Autocomplete fetch URL:', url);
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Error en fetch: ${res.statusText}`);
+      const data: string[] = await res.json();
+      console.log('datos recibidos:', data);
+
+      setOptions(data);
+      setOpen(data.length > 0);
+    } catch (err) {
+      console.error('Error AutocompleteHuerto:', err);
+      setOptions([]);
+      setOpen(false);
+    }
+  };
+
+  // Cerrar dropdown al hacer click afuera
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      <Input
+        label="Huerto"
+        value={value ?? ''}
+        onChange={(e) => {
+          onChange(e.target.value);
+          buscar(e.target.value);
+        }}
+        onFocus={() => value && buscar(value)}
+        placeholder="Escriba nombre de huerto"
+        autoComplete="off"
+      />
+
+      {open && options.length > 0 && (
+        <ul className="absolute z-50 w-full bg-white border rounded-lg shadow mt-1 max-h-48 overflow-auto">
+          {options.map((opt) => (
+            <li
+              key={opt}
+              className="px-3 py-2 hover:bg-cku-blue/10 cursor-pointer text-sm"
+              onClick={() => {
+                onChange(opt);
+                setOpen(false);
+              }}
+            >
+              {opt}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
+export default AutocompleteHuerto;

@@ -1,0 +1,67 @@
+import React, {
+  createContext,
+  useState,
+  useContext,
+  ReactNode,
+  useEffect
+} from 'react';
+
+interface GlobalSettingsContextType {
+  temporada: string;
+  setTemporada: (temporada: string) => void;
+
+}
+
+const GlobalSettingsContext =
+  createContext<GlobalSettingsContextType | undefined>(undefined);
+
+export const useGlobalSettings = () => {
+  const context = useContext(GlobalSettingsContext);
+  if (!context) {
+    throw new Error(
+      'useGlobalSettings must be used within a GlobalSettingsProvider'
+    );
+  }
+  return context;
+};
+
+interface GlobalSettingsProviderProps {
+  children: ReactNode;
+  user?: {
+    planta?: string;     // 👈 viene desde la BD
+    temporada?: string;  // opcional
+  };
+}
+
+export const GlobalSettingsProvider: React.FC<GlobalSettingsProviderProps> = ({
+  children,
+  user
+}) => {
+  const [planta, setPlanta] = useState<string>('');
+  const [temporada, setTemporada] = useState<string>('24-25');
+
+  // 🔥 CARGA AUTOMÁTICA DESDE USUARIO (BD)
+  useEffect(() => {
+    if (user?.planta) {
+      setPlanta(user.planta);
+    }
+    if (user?.temporada) {
+      setTemporada(user.temporada);
+    }
+  }, [user]);
+
+  
+
+  return (
+    <GlobalSettingsContext.Provider
+      value={{
+
+        temporada,
+        setTemporada,
+        
+      }}
+    >
+      {children}
+    </GlobalSettingsContext.Provider>
+  );
+};
