@@ -1,10 +1,6 @@
 import { FormTemplate, FormSubmission, User, DynamicTableColumn, FieldType } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
-export const MOCK_USER: User = {
-  name: 'Juan Pérez',
-  roles: ['Administrador', 'Trabajador CKU'],
-};
 
 // Helper to generate 30 fixed line columns for Step 3 of REG.CKU.017
 const getFixedLineColumns = (): DynamicTableColumn[] => {
@@ -82,20 +78,16 @@ const ANALISIS_PRECOSECHA_TEMPLATE: FormTemplate = {
       fields: [
         { key: 'planta', label: 'Planta', type: 'text', readOnly: true },
         { key: 'tipo_fruta', label: 'Tipo Fruta', type: 'select', options: ['MANZANA', 'PERAS'] },
-        { key: 'productor', label: 'Productor', type: 'text' },
+        { key: 'productor', label: 'Productor', type: 'autocomplete', },
+ 	{ key: 'identificacion.variedad', label: 'VARIEDAD', type: 'select', options: [], dynamicOptions: 'variedades' },
+        
         {
-          key: 'variedad',
-          label: 'Variedad',
-          type: 'select',
-          options: ['Gala', 'Fuji', 'Granny Smith', 'Pink Lady', 'Cripps Pink', 'Ambrosia', 'Honeycrisp', 'Bartlett', 'Packhams', 'Abate Fetel'],
-        },
-        {
-          key: 'variedad_rotulada_grupo',
+          key: 'recepcion.variedad_rotulada_grupo',
           label: 'Variedad Rotulada (Grupo)',
-          type: 'select',
-          options: ['ROJAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI', 'GRANNY SMITH'],
+          type: 'text',
+          readOnly: true,
         },
-        { key: 'huerto_cuartel', label: 'Huerto / Cuartel', type: 'text' },
+        { key: 'huerto_cuartel', label: 'Huerto / Cuartel', type: 'autocomplete',  },
         { key: 'agronomo', label: 'Agrónomo', type: 'text' },
         { key: 'temporada', label: 'Temporada', type: 'text', readOnly: true },
         { key: 'fecha_muestra', label: 'F.M.', type: 'date', help: 'Fecha de Muestreo' },
@@ -154,7 +146,7 @@ const ANALISIS_PRECOSECHA_TEMPLATE: FormTemplate = {
             })),
             dependency: {
               key: 'variedad_rotulada_grupo',
-              value: ['ROJAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI']
+              value: ['ROJA LISAS','ROJA RAYADAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI','IFO RED','MC']
             }
         },
         { 
@@ -165,7 +157,7 @@ const ANALISIS_PRECOSECHA_TEMPLATE: FormTemplate = {
           help: 'Cálculo automático.',
           dependency: {
             key: 'variedad_rotulada_grupo',
-            value: ['ROJAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI']
+            value: ['ROJA LISAS','ROJA RAYADAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI','IFO RED','MC']
           }
         },
         {
@@ -184,7 +176,7 @@ const ANALISIS_PRECOSECHA_TEMPLATE: FormTemplate = {
             initialRows: [{ _id: uuidv4(), _isFixed: true }],
             dependency: {
               key: 'variedad_rotulada_grupo',
-              value: ['ROJAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI']
+              value: ['ROJA LISAS','ROJA RAYADAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI','IFO RED','MC']
             }
         },
         {
@@ -364,22 +356,17 @@ const RECEPCION_MADUREZ_TEMPLATE: FormTemplate = {
         { key: 'encabezado.planta', label: 'Planta', type: 'text', readOnly: true },
         { key: 'encabezado.temporada', label: 'Temporada', type: 'text', readOnly: true },
         { key: 'identificacion.codigo', label: 'CÓDIGO', type: 'text' },
-        { key: 'identificacion.productor', label: 'PRODUCTOR', type: 'text' },
+        { key: 'productor', label: 'PRODUCTOR', type: 'autocomplete' },//antes identificacion.productor
         { key: 'encabezado.tipo_fruta', label: 'Tipo Fruta', type: 'select', options: ['MANZANA', 'PERA'] },
-        { key: 'identificacion.variedad', label: 'VARIEDAD', type: 'select', options: ['Gala', 'Fuji', 'Granny Smith', 'Pink Lady', 'Red Delicious'] },
-        {
-          key: 'identificacion.variedad_rotulada_grupo',
-          label: 'Variedad Rotulada (Grupo)',
-          type: 'select',
-          options: ['ROJAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI', 'GRANNY SMITH'],
-        },
+         { key: 'identificacion.variedad', label: 'VARIEDAD', type: 'select', options: [], dynamicOptions: 'variedades' },
+      
         {
           key: 'identificacion.tamano_muestra',
           label: 'Tamaño de Muestra',
           type: 'integer',
           help: 'Ingrese el número de frutos de la muestra (ej: 30).',
         },
-        { key: 'identificacion.huerto', label: 'HUERTO', type: 'text' },
+        { key: 'huerto_cuartel', label: 'HUERTO', type: 'autocomplete' },
         { key: 'identificacion.n_bins', label: 'N° Bins', type: 'text' },
         { key: 'encabezado.folio_cku', label: 'FOLIO CKU', type: 'text' },
         { key: 'datos_cosecha.n_carta_cosecha', label: 'N° CARTA COSECHA', type: 'text' },
@@ -751,15 +738,17 @@ const PROYECCION_EMBALAJE_TEMPLATE: FormTemplate = {
       fields: [
         { key: 'encabezado.planta', label: 'Planta', type: 'text', readOnly: true },
         { key: 'encabezado.temporada', label: 'Temporada', type: 'text', readOnly: true },
-        { key: 'recepcion.productor', label: 'Productor', type: 'text' },
+        { key: 'productor', label: 'Productor', type: 'autocomplete' },
         { key: 'recepcion.codigo_productor', label: 'Código Productor', type: 'text' },
         { key: 'encabezado.tipo_fruta', label: 'Tipo de fruta', type: 'select', options: ['MANZANA', 'PERA'] },
-        { key: 'recepcion.variedad', label: 'Variedad', type: 'select', options: ['Gala', 'Fuji', 'Granny Smith', 'Pink Lady', 'Red Delicious'] },
+        { key: 'identificacion.variedad', label: 'VARIEDAD', type: 'select', options: [], dynamicOptions: 'variedades' },
         {
           key: 'recepcion.variedad_rotulada_grupo',
           label: 'Variedad Rotulada (Grupo)',
-          type: 'select',
-          options: ['ROJAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI', 'GRANNY SMITH'],
+          type: 'text',
+          
+          readOnly: true,
+         
         },
         { key: 'recepcion.n_bins', label: 'N° Bins', type: 'text' },
         { key: 'recepcion.tamano_muestra', label: 'Tamaño de Muestra', type: 'integer' },
@@ -807,7 +796,7 @@ const PROYECCION_EMBALAJE_TEMPLATE: FormTemplate = {
                 initialRows: [{ _id: uuidv4(), _isFixed: false }],
                 dependency: {
                   key: 'recepcion.variedad_rotulada_grupo',
-                  value: ['GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI', 'GRANNY SMITH']
+                  value: ['GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI', 'GRANNYS']
                 }
             },
             {
@@ -826,7 +815,7 @@ const PROYECCION_EMBALAJE_TEMPLATE: FormTemplate = {
                 initialRows: [{ _id: uuidv4(), _isFixed: true }],
                 dependency: {
                   key: 'recepcion.variedad_rotulada_grupo',
-                  value: ['ROJAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI']
+                  value: ['ROJA LISAS','ROJA RAYADAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI','GRANNYS','IFO RED','MC']
                 }
             }
         ]
@@ -968,12 +957,9 @@ const AC_RECEPCION_TEMPLATE: FormTemplate = {
         { key: 'encabezado.temporada', label: 'Temporada', type: 'text', readOnly: true },
         { key: 'encabezado.tipo_fruta', label: 'Tipo Fruta', type: 'select', options: ['MANZANA', 'PERA'] },
         { key: 'encabezado.camara', label: 'Cámara', type: 'text' },
-        { key: 'encabezado.productor', label: 'Productor', type: 'text' },
+        { key: 'productor', label: 'Productor', type: 'autocomplete' },
         {
-          key: 'encabezado.variedad',
-          label: 'Variedad Real',
-          type: 'select',
-          options: ['Gala', 'Fuji', 'Granny Smith', 'Pink Lady', 'Cripps Pink', 'Ambrosia', 'Honeycrisp', 'Bartlett', 'Packhams', 'Abate Fetel'],
+        key: 'identificacion.variedad', label: 'VARIEDAD', type: 'select', options: [], dynamicOptions: 'variedades' ,
         },
         { key: 'encabezado.dias_ac', label: 'Días en AC', type: 'integer' },
         { key: 'encabezado.tipo_frio', label: 'Tipo de Frío', type: 'select', options: ['AC', 'AC-S', 'AC-D', 'FL', 'FL-S', 'FC-1S', 'Convencional'] },
@@ -1102,15 +1088,16 @@ const EMPAQUE_PRESIZE_TEMPLATE: FormTemplate = {
             fields: [
                 { key: 'encabezado.planta', label: 'Planta', type: 'text', readOnly: true },
                 { key: 'encabezado.tipo_fruta', label: 'Tipo Fruta', type: 'select', options: ['MANZANA', 'PERA'] },
-                { key: 'productor', label: 'Productor', type: 'text' },
+                { key: 'productor', label: 'Productor', type: 'autocomplete' },
                 { key: 'codigo_productor', label: 'Código Productor', type: 'text' },
                 { key: 'mercado', label: 'Mercado', type: 'text' },
-                { key: 'variedad', label: 'Variedad', type: 'text' },
+                { key: 'identificacion.variedad', label: 'VARIEDAD', type: 'select', options: [], dynamicOptions: 'variedades' },
                 {
-                  key: 'variedad_rotulada_grupo',
+                  key: 'recepcion.variedad_rotulada_grupo',
                   label: 'Variedad Rotulada (Grupo)',
-                  type: 'select',
-                  options: ['ROJAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI', 'GRANNY SMITH'],
+                  type: 'text',
+                  
+                    readOnly: true,
                 },
                 { key: 'calibre', label: 'Calibre', type: 'integer' },
                 { key: 'categoria', label: 'Categoría', type: 'text' },
@@ -1283,9 +1270,9 @@ const CONDICION_POMACEAS_TEMPLATE: FormTemplate = {
             fields: [
                 { key: 'planta', label: 'Planta', type: 'text', readOnly: true },
                 { key: 'tipo_fruta', label: 'Tipo Fruta', type: 'select', options: ['MANZANA', 'PERA'] },
-                { key: 'productor', label: 'Productor', type: 'text' },
+                { key: 'productor', label: 'Productor', type: 'autocomplete' },
                 { key: 'mercado', label: 'Mercado', type: 'text' },
-                { key: 'variedad', label: 'Variedad', type: 'text' },
+                { key: 'identificacion.variedad', label: 'VARIEDAD', type: 'select', options: [], dynamicOptions: 'variedades' },
                 { key: 'ot', label: 'O.T', type: 'text' },
                 { key: 'n_bins', label: 'N° Bins', type: 'text' }, 
                 { key: 'turno', label: 'Turno', type: 'text' },
@@ -1525,12 +1512,12 @@ const PRE_EMBARQUE_TEMPLATE: FormTemplate = {
                     columns: [
                         { key: 'folio_pallet', label: 'FOLIO PALLET', type: 'text', required: false },
                         { key: 'n_caja', label: 'N° DE CAJA', type: 'text', required: false },
-                        { key: 'productor', label: 'PRODUCTOR', type: 'text', required: false },
+                        { key: 'productor', label: 'PRODUCTOR', type: 'autocomplete', required: false },
                         { 
                             key: 'variedad', 
                             label: 'VARIEDAD ROT.', 
                             type: 'select', 
-                            options: ['ROJAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI', 'GRANNY SMITH'],
+                            options: ['ROJA LISAS','ROJA RAYADAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI', 'GRANNYS','IFO RED','MC'],
                             required: false 
                         },
                         { 
@@ -1631,7 +1618,7 @@ export const MOCK_TEMPLATES: FormTemplate[] = [
   EMPAQUE_PRESIZE_TEMPLATE,
   CONDICION_POMACEAS_TEMPLATE,
   AC_RECEPCION_TEMPLATE,
-  MOCK_USER.roles.includes('Administrador') ? MERCADO_INTERNO_TEMPLATE : MERCADO_INTERNO_TEMPLATE, 
+  //MOCK_USER.rol.includes('Administrador') ? MERCADO_INTERNO_TEMPLATE : MERCADO_INTERNO_TEMPLATE, 
   PRE_EMBARQUE_TEMPLATE,
 ];
 

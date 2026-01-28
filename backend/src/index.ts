@@ -6,12 +6,15 @@ import { submissionsRouter } from "./routes/submissions.routes";
 
 const app = express();
 
+import { getPool } from "./db/pool";
+const poolPromise = getPool();
+
 // Útil en deploys detrás de proxy (Render/Railway/Fly/Nginx)
 // No rompe local.
 app.set("trust proxy", 1);
 
 // -----------------------
-// CORS
+// CORS 
 // -----------------------
 // Si defines CORS_ORIGINS (comma-separated) en prod, se aplica allowlist.
 // Si NO lo defines, se permite cualquier origin (similar a tu "origin: true").
@@ -55,6 +58,57 @@ app.get("/health", (_req: Request, res: Response) => {
 // Routes
 // -----------------------
 app.use("/api/submissions", submissionsRouter);
+
+app.use('/api/variedades', require('./routes/variedades'));
+app.use('/api/auth', require('./routes/auth'));
+
+// ------------------------------------------------------------//
+// NUEVAS RUTAS PARA AUTOCOMPLETE
+// Huertos
+app.get('/api/catalogo/autocomplete/huerto', async (req, res) => {
+  const { q } = req.query;
+  if (!q || q.length < 2) return res.json([]);
+
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .input('q', `%${q}%`)
+      .query(`
+        SELECT DISTINCT NombreHuerto AS valor
+        FROM dbo.CKU_Fruta_Productor
+        WHERE NombreHuerto LIKE @q
+        ORDER BY NombreHuerto
+      `);
+    res.json(result.recordset.map(r => r.valor.trim()));
+  } catch (err) {
+    console.error('ERROR AUTOCOMPLETE HUERTO:', err);
+    res.status(500).json([]);
+  }
+});
+
+// Productores
+app.get('/api/catalogo/autocomplete/productor', async (req, res) => {
+  const { q } = req.query;
+  if (!q || q.length < 2) return res.json([]);
+
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .input('q', `%${q}%`)
+      .query(`
+        SELECT DISTINCT NombreFantasia AS valor
+        FROM dbo.CKU_Fruta_Productor
+        WHERE NombreFantasia LIKE @q
+        ORDER BY NombreFantasia
+      `);
+    res.json(result.recordset.map(r => r.valor.trim()));
+  } catch (err) {
+    console.error('ERROR AUTOCOMPLETE PRODUCTOR:', err);
+    res.status(500).json([]);
+  }
+});
+// ---------------------------
+
 
 // -----------------------
 // 404

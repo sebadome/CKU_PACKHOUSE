@@ -24,7 +24,17 @@ import { v4 as uuidv4 } from "uuid";
 import _ from 'lodash';
 import { PressureMatrixManager, PressureEntry } from "../components/PressureMatrixManager";
 import { Modal } from "../components/ui/Modal";
-import { finalizeSubmission } from "../api/client";
+import { getDynamicOptions } from "../dynamicOptions";
+import AutocompleteHuertos from "@/components/AutoCompleteCatalog";
+
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
+
+import VariedadSelect from "@/components/variedadgrupo";
+
+import AutocompleteHuerto from "@/components/AutoCompleteCatalog";
+import AutocompleteProductor from "@/components/AutoCompleteProductor";
+
 
 
 interface FormFillerProps {
@@ -47,13 +57,17 @@ const FormFiller: React.FC<FormFillerProps> = ({
   const navigate = useNavigate();
   const { addToast } = useToast();
   const { blockNavigation, confirmExit, shouldConfirmExit } = useNavigationBlocker();
-  const { planta, temporada, getFormattedPlanta } = useGlobalSettings();
+  const { user } = useContext(AuthContext);
+  const { temporada } = useGlobalSettings();
+  const planta = user?.planta ?? '';
+
 
   const [template, setTemplate] = useState<FormTemplate | null>(null);
   const [submission, setSubmission] = useState<FormSubmission | null>(null);
   const [activeSection, setActiveSection] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [dynamicOptionsCache, setDynamicOptionsCache] = useState<Record<string, string[]>>({});
   
   const [isDirty, setIsDirty] = useState(false);
   const fromNewRef = useRef(location.state?.fromNew || false);
@@ -76,26 +90,86 @@ const FormFiller: React.FC<FormFillerProps> = ({
     return !isReadOnly && submission?.status === "Borrador";
   }, [isReadOnly, submission?.status]);
 
-  const handleDataChange = useCallback((key: string, value: any, options?: { newColumns?: any, markAsDirty?: boolean }) => {
+    // Preload dynamic options declared in the template (e.g. 'variedades')
+    useEffect(() => {
+        let mounted = true;
+        const load = async () => {
+            if (!template) return;
+            const types = new Set<string>();
+            for (const section of template.sections) {
+                for (const field of section.fields) {
+                    if (field.dynamicOptions) types.add(field.dynamicOptions);
+                }
+            }
+            for (const t of Array.from(types)) {
+                try {
+                    const opts = await getDynamicOptions(t);
+                    if (!mounted) return;
+                    setDynamicOptionsCache(prev => ({ ...prev, [t]: opts }));
+                } catch (err) {
+                    console.error('Error cargando opciones dinámicas', t, err);
+                }
+            }
+        };
+        load();
+        return () => { mounted = false; };
+    }, [template]);
+
+  const handleDataChange = useCallback((
+    key: string,
+    value: any,
+    options?: { newColumns?: any; markAsDirty?: boolean }
+    ) => {
     setSubmission((prev) => {
-      if (!prev) return prev;
-      const next = JSON.parse(JSON.stringify(prev)); 
+        if (!prev) return prev;
 
-      if (key === 'variedad_rotulada_grupo' && template?.id === 'REG.CKU.013') {
-        const currentVariety = _.get(next.data, key);
-        if (currentVariety !== value) {
-            _.set(next.data, 'matriz_categorias_calibre', [{ _id: uuidv4(), _isFixed: true }]);
+        const next = JSON.parse(JSON.stringify(prev));
+
+      
+
+
+        // ============================================
+        // 2️⃣ DISPARAR MATRIZ – REG.CKU.013
+        // ============================================
+        if (
+        template?.id === 'REG.CKU.013' &&
+        key === 'recepcion.variedad_rotulada_grupo'
+        ) {
+        const prevValue = _.get(prev.data, key);
+
+        if (prevValue !== value) {
+            _.set(next.data, 'matriz_categorias_calibre', [
+            { _id: uuidv4(), _isFixed: true }
+            ]);
         }
-      }
-
-      if (key === 'recepcion.variedad_rotulada_grupo' && template?.id === 'REG.CKU.015') {
-        const currentVariety = _.get(next.data, key);
-        if (currentVariety !== value) {
-            _.set(next.data, 'tabla_color_cubrimiento', [{ _id: uuidv4(), _isFixed: true }]);
         }
-      }
 
-      _.set(next.data, key, value);
+
+        // ============================================
+        // 3️⃣ DISPARAR MATRIZ – REG.CKU.015
+        // ============================================
+        if (
+        template?.id === 'REG.CKU.015' &&
+        key === 'recepcion.variedad_rotulada_grupo'
+        ) {
+        const prevValue = _.get(prev.data, key);
+
+        if (prevValue !== value) {
+            _.set(next.data, 'tabla_color_cubrimiento', [
+            { _id: uuidv4(), _isFixed: true }
+            ]);
+        }
+        }
+
+        // ============================================
+        // 4️⃣ SET VALOR ORIGINAL
+        // ============================================
+        _.set(next.data, key, value);
+
+       
+    
+   
+
 
       // --- Lógica específica para REG.CKU.017 (Empaque) ---
       if (template?.id === 'REG.CKU.017') {
@@ -275,7 +349,8 @@ const FormFiller: React.FC<FormFillerProps> = ({
       if (tpl) {
         const s = initializeSubmission(tpl.id);
         const initialData: Record<string, any> = {};
-        const plantaActual = getFormattedPlanta();
+        const plantaActual = user?.planta ?? '';
+
         
         if (tpl.id === 'REG.CKU.013') {
             _.set(initialData, 'planta', plantaActual);
@@ -293,6 +368,9 @@ const FormFiller: React.FC<FormFillerProps> = ({
             _.set(initialData, 'encabezado.temporada', temporada);
             _.set(initialData, 'encabezado.tipo_fruta', 'MANZANA');
             _.set(initialData, 'recepcion.tamano_muestra', 50);
+        } else if (tpl.id === 'REG.CKU.016') {
+            _.set(initialData, 'encabezado.planta', plantaActual);
+            _.set(initialData, 'encabezado.temporada', temporada);
         } else if (tpl.id === 'REG.CKU.017') {
             _.set(initialData, 'encabezado.planta', plantaActual);
             _.set(initialData, 'temporada', temporada);
@@ -343,11 +421,12 @@ const FormFiller: React.FC<FormFillerProps> = ({
     return () => {
       blockNavigation(false);
     };
-  }, [id, location.search, findSubmission, findTemplate, initializeSubmission, getFormattedPlanta, temporada, navigate, blockNavigation]);
+  }, [id, location.search, findSubmission, findTemplate, initializeSubmission, user?.planta, temporada, navigate, blockNavigation]);
 
   useEffect(() => {
     if (!submission || !template || !isEditable) return;
-    const plantaActual = getFormattedPlanta();
+    const plantaActual = user?.planta ?? '';
+
     
     // Determinación de la key de planta según la plantilla
     let plantaKey = 'planta'; // Default para 013, 018, 027
@@ -375,7 +454,7 @@ const FormFiller: React.FC<FormFillerProps> = ({
             return next;
         });
     }
-  }, [planta, temporada, template?.id, isEditable, getFormattedPlanta]);
+  }, [user?.planta, temporada, template?.id, isEditable, ]);
 
   useEffect(() => {
     if (!template || !submission) return;
@@ -393,12 +472,16 @@ const FormFiller: React.FC<FormFillerProps> = ({
 
     if (variety && targetTableKey) {
       let labels: string[] | null = null;
-      if (variety === 'ROJAS') labels = ["+95", "+85", "+76", "-76"];
+      if (variety === 'ROJA LISAS') labels = ["+95", "+85", "+76", "-76"];
+      else if (variety === 'ROJA RAYADAS') labels = ["+95", "+85", "+76", "-76"];
       else if (variety === 'GALA') labels = ["+50", "+50", "+30", "-30"];
       else if (variety === 'CRIPPS PINK') labels = ["+40", "+30", "-30"];
       else if (variety === 'AMBROSIA') labels = ["+40", "+10", "-10"];
       else if (variety === 'FUJI') labels = ["+60", "+40", "-4"];
       else if (variety === 'KANZI') labels = ["+30", "-30"];
+      else if (variety === 'GRANNYS') labels = ["+NA", "+NA", "-NA"];
+      else if (variety === 'IFO RED') labels = ["+NA", "+NA", "-NA"];
+      else if (variety === 'MC') labels = ["+NA", "+NA", "-NA"];
 
       if (labels) {
         const newCols: DynamicTableColumn[] = labels.map((label, i) => ({
@@ -1388,44 +1471,15 @@ const FormFiller: React.FC<FormFillerProps> = ({
     setTimeout(() => setIsSaving(false), 400);
   };
 
-const handleSubmit = async (newStatus: FormStatus) => {
-  if (!submission || !template) return;
-  if (!validateCurrentSection()) return;
-
-  const finalSubmission: FormSubmission = {
-    ...submission,
-    status: newStatus,
-    updatedAt: new Date().toISOString(),
-  };
-
-  try {
-    // Solo cuando es FINALIZAR (Ingresado) enviamos al backend
-    if (newStatus === "Ingresado") {
-      const payload = {
-        ...finalSubmission,
-        template: { title: template.title, version: template.version },
-        user: {
-          id: "frontend-local",
-          name: finalSubmission.submittedBy,
-          email: "",
-        },
-      };
-
-      await finalizeSubmission(payload);
-    }
-
-    // Si backend OK (o era borrador), seguimos como antes:
+  const handleSubmit = (newStatus: FormStatus) => {
+    if (!submission || !template) return;
+    if (!validateCurrentSection()) return;
+    const finalSubmission: FormSubmission = { ...submission, status: newStatus, updatedAt: new Date().toISOString() };
     saveSubmission(finalSubmission);
-    setIsDirty(false);
-    blockNavigation(false);
+    setIsDirty(false); blockNavigation(false);
     addToast({ message: `Registro ${newStatus.toLowerCase()}`, type: "success" });
     navigate(isReadOnly ? "/records" : "/");
-  } catch (e) {
-    console.error(e);
-    addToast({ message: "Error al finalizar. Revisa Teams / backend.", type: "error" });
-  }
-};
-
+  };
 
   if (!template || !submission || !template.sections) {
     return <div className="text-center p-10">Cargando formulario...</div>;
@@ -1603,6 +1657,7 @@ const handleSubmit = async (newStatus: FormStatus) => {
                                 field={field}
                                 value={_.get(submission.data, field.key)}
                                 onChange={(key, val, extra) => handleDataChange(key, val, extra)}
+                                dynamicOptionsCache={dynamicOptionsCache}
                                 isEditable={isEditable}
                                 dynamicSchema={submission.dynamicSchemas?.[field.key]}
                                 error={errors[field.key]}
@@ -1714,7 +1769,8 @@ const RenderField: React.FC<{
   activeColumnKey?: string; 
   onActiveColumnChange?: (key: string) => void;
   highlightThreshold?: number;
-}> = ({ field, value, onChange, isEditable, dynamicSchema, error, activeColumnKey, onActiveColumnChange, highlightThreshold }) => {
+    dynamicOptionsCache?: Record<string, string[]>;
+}> = ({ field, value, onChange, isEditable, dynamicSchema, error, activeColumnKey, onActiveColumnChange, highlightThreshold, dynamicOptionsCache }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => onChange(field.key, e.target.value);
   const disabled = !isEditable || !!field.readOnly;
 
@@ -1757,6 +1813,7 @@ const RenderField: React.FC<{
         step={field.type === 'integer' ? '1' : 'any'} 
         value={value ?? ""} 
         onChange={handleInputChange} 
+        onWheel={(e) => e.preventDefault()}
         disabled={disabled} 
         error={error} 
         autoComplete="off"
@@ -1764,19 +1821,85 @@ const RenderField: React.FC<{
         max={field.validations?.max}
         className="text-sm"
       />;
-    case "select":
-      return (
-        <Select id={field.key} name={field.key} value={value ?? ""} onChange={handleInputChange} disabled={disabled} error={error} className="text-sm">
-          <option value="">-- Seleccionar --</option>
-          {field.options?.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-        </Select>
-      );
+        case "select":
+            // ✅ SELECT ESPECIAL: VARIEDADES (BD mapea variedad → grupo)
+            if (field.dynamicOptions === 'variedades') {
+                return (
+                <VariedadSelect
+                    value={value ?? ''}
+                    disabled={disabled}
+                    onChange={(variedad, grupo) => {
+                    // guarda la variedad
+                    onChange(field.key, variedad);
+
+                    // guarda automáticamente el grupo
+                    onChange('recepcion.variedad_rotulada_grupo', grupo);
+                    }}
+                />
+                );
+            }
+
+            // ✅ SELECT NORMAL (todo lo demás)
+            const dynamicOpts = field.dynamicOptions
+                ? (dynamicOptionsCache?.[field.dynamicOptions] || [])
+                : [];
+
+            return (
+                <Select
+                id={field.key}
+                name={field.key}
+                value={value ?? ""}
+                onChange={handleInputChange}
+                disabled={disabled}
+                error={error}
+                className="text-sm"
+                >
+                <option value="">-- Seleccionar --</option>
+                {(field.dynamicOptions ? dynamicOpts : field.options || []).map((opt) => (
+                    <option key={opt} value={opt}>
+                    {opt}
+                    </option>
+                ))}
+                </Select>
+            );
+
     case "boolean":
       return <input id={field.key} name={field.key} type="checkbox" className="h-5 w-5 rounded border-gray-300 text-cku-blue focus:ring-cku-blue disabled:opacity-50" checked={!!value} onChange={(e) => onChange(field.key, e.target.checked)} disabled={disabled} />;
     case "textarea":
       return <textarea id={field.key} name={field.key} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-cku-blue focus:border-cku-blue text-sm disabled:bg-gray-100" rows={4} value={value ?? ""} onChange={handleInputChange} disabled={disabled} />;
     case "dynamic_table":
       return <DynamicTable columns={dynamicSchema || field.columns || []} data={value || []} onChange={(data, cols) => onChange(field.key, data, { newColumns: cols })} canAddRows={field.user_can_add_rows} canAddCols={field.user_can_add_columns} isReviewMode={!isEditable || !!field.readOnly} label={field.label} activeColumnKey={activeColumnKey} onActiveColumnChange={onActiveColumnChange} highlightThreshold={highlightThreshold} />;
+
+    case 'autocomplete':
+        // Dependiendo del campo, usamos el componente correspondiente
+        if (field.key === 'huerto_cuartel') {
+            return (
+            <AutocompleteHuerto
+                value={value ?? ''}
+                onChange={(v) => onChange(field.key, v)}
+                disabled={!isEditable}
+            />
+            );
+        }
+
+        if (field.key === 'productor') {
+            return (
+            <AutocompleteProductor
+                value={value ?? ''}
+                onChange={(v) => onChange(field.key, v)}
+                disabled={!isEditable}
+            />
+            );
+        }
+
+        // Si hay otros autocompletados en el futuro, puedes agregarlos aquí
+
+        return <p className="text-sm text-gray-500">Autocomplete no implementado para {field.key}</p>;
+
+
+
+
+   
     case "pressure_matrix":
       return <PressureMatrixManager 
         value={value || []} 

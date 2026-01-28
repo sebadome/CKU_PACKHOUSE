@@ -22,7 +22,13 @@ export type FieldType =
   | 'textarea' // Replaces 'observation' for clarity
   | 'file'
   | 'dynamic_table'
-  | 'pressure_matrix'; // NEW: Specific type for nested pressure details
+  | 'pressure_matrix' // NEW: Specific type for nested pressure details
+  | 'autocomplete';
+
+  export interface VariedadOption {
+  variedad: string;
+  grupo: string;
+  }
 
 export interface FieldValidation {
   min?: number;
@@ -63,6 +69,7 @@ export interface FormField {
   help?: string;
   validations?: FieldValidation;
   options?: string[];
+  dynamicOptions?:string;
   catalog?: string;
   series_count?: number; 
   columns?: DynamicTableColumn[];
@@ -80,7 +87,9 @@ export interface FormField {
   showSummaryColumns?: boolean; // NEW: Propiedad para mostrar MAX, MIN, X en matrices de presión
   showOnlyAverage?: boolean; // NEW: Propiedad para mostrar solo el promedio en matrices de presión
   isWeightMode?: boolean; // NEW: Indica si la matriz de presiones opera en modo pesos
+  campo?:string;
 }
+
 
 export interface FormSection {
   id?: string; // NEW: Unique ID for the section, optional for mocks
