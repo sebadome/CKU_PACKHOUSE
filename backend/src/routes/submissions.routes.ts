@@ -14,6 +14,7 @@ import { finalizeProyEmbalajePomaceas } from "../services/proyEmbalajePomaceas.s
 import { finalizeEmpaque } from "../services/empaque.service";
 import { finalizePresizer } from "../services/ckuPresizer.service";
 import { finalizeAtmControlada } from "../services/atmControlada.service";
+import { finalizePreEmbarque } from "../services/preEmbarque.service";
 
 export const submissionsRouter = Router();
 
@@ -603,6 +604,49 @@ submissionsRouter.post("/finalize", async (req, res) => {
                 "tablas/detalles_presiones": String(counts.detalles_presiones ?? ""),
                 "tablas/conceptos_matriz": String(counts.conceptos_matriz ?? ""),
                 "tablas/frutos_matriz": String(counts.frutos_matriz ?? ""),
+                health_status: String(counts.health_status ?? ""),
+              }
+            : {}),
+        }
+      );
+
+      return res.json({
+        ok: true,
+        submissionId: String((result as any)?.submissionId ?? submissionId),
+        requestId,
+        health_status: status,
+        counts,
+      });
+    }
+        // =========================================================
+    // 2.E) PRE-EMBARQUE (REG.CKU.027)
+    // =========================================================
+    if (templateId === "REG.CKU.027") {
+      const submissionId = normalizeSubmissionId(payload);
+
+      const result = await finalizePreEmbarque(submissionId);
+
+      const counts: Record<string, any> =
+        (result as any)?.counts && typeof (result as any).counts === "object"
+          ? (result as any).counts
+          : {};
+
+      const status = healthToStatus(counts?.health_status);
+      const emoji = statusToEmoji(status);
+
+      await sendTeamsCard(
+        env.TEAMS_WEBHOOK_URL,
+        `${emoji} FINALIZE ${status} - PRE-EMBARQUE (API)`,
+        "Normalización ejecutada: CKU_Submissions → loader SQL (SP) → 4 tablas + health.",
+        {
+          ...baseFacts,
+          submission_id: String((result as any)?.submissionId ?? submissionId),
+          "tiempo(ms)": String(Date.now() - t0),
+          ...(Object.keys(counts).length
+            ? {
+                "tablas/inspecciones": String(counts.inspecciones ?? ""),
+                "tablas/presiones": String(counts.presiones ?? ""),
+                "tablas/hallazgos": String(counts.hallazgos ?? ""),
                 health_status: String(counts.health_status ?? ""),
               }
             : {}),
