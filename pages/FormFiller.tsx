@@ -84,12 +84,13 @@ const FormFiller: React.FC<FormFillerProps> = ({
             if (!prev) return prev;
             const next = JSON.parse(JSON.stringify(prev));
 
-            if (key === 'variedad_rotulada_grupo' && template?.id === 'REG.CKU.013') {
+            if (key === 'identificacion.variedad_rotulada_grupo' && template?.id === 'REG.CKU.013') {
                 const currentVariety = _.get(next.data, key);
                 if (currentVariety !== value) {
                     _.set(next.data, 'matriz_categorias_calibre', [{ _id: uuidv4(), _isFixed: true }]);
                 }
             }
+
 
             if (key === 'recepcion.variedad_rotulada_grupo' && template?.id === 'REG.CKU.015') {
                 const currentVariety = _.get(next.data, key);
@@ -264,11 +265,22 @@ const FormFiller: React.FC<FormFillerProps> = ({
                             }
                         });
                     });
+
+                    // ✅ MIGRACIÓN REG.CKU.013 (compatibilidad hacia atrás)
+                    if (tpl.id === 'REG.CKU.013') {
+                        const oldGroup = _.get(cloned.data, 'variedad_rotulada_grupo');
+                        const newGroup = _.get(cloned.data, 'identificacion.variedad_rotulada_grupo');
+
+                        if (oldGroup && !newGroup) {
+                            _.set(cloned.data, 'identificacion.variedad_rotulada_grupo', oldGroup);
+                        }
+                    }
                 }
 
                 if (!cloned.status) cloned.status = "Borrador";
                 loadedSubmission = cloned;
                 setTemplate(tpl || null);
+
             } else {
                 navigate("/");
                 return;
@@ -387,7 +399,7 @@ const FormFiller: React.FC<FormFillerProps> = ({
         let targetTableKey: string | undefined;
 
         if (template.id === 'REG.CKU.013') {
-            variety = submission.data.variedad_rotulada_grupo;
+            variety = _.get(submission.data, 'identificacion.variedad_rotulada_grupo');
             targetTableKey = 'matriz_categorias_calibre';
         } else if (template.id === 'REG.CKU.015') {
             variety = _.get(submission.data, 'recepcion.variedad_rotulada_grupo');
@@ -439,9 +451,10 @@ const FormFiller: React.FC<FormFillerProps> = ({
             }
         }
     }, [
-        submission?.data?.variedad_rotulada_grupo,
+        _.get(submission?.data, 'identificacion.variedad_rotulada_grupo'),
         _.get(submission?.data, 'recepcion.variedad_rotulada_grupo'),
         template?.id
+
     ]);
 
     useEffect(() => {
@@ -1834,7 +1847,7 @@ const RenderField: React.FC<{
                 max={field.validations?.max}
                 className="text-sm"
             />;
-                case "select": {
+        case "select": {
             const selectValue = String(value ?? "");
 
             // ✅ Detectar el campo de variedad correctamente

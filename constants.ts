@@ -83,13 +83,19 @@ const ANALISIS_PRECOSECHA_TEMPLATE: FormTemplate = {
                 { key: 'planta', label: 'Planta', type: 'text', readOnly: true },
                 { key: 'tipo_fruta', label: 'Tipo Fruta', type: 'select', options: ['MANZANA', 'PERAS'] },
                 { key: 'productor', label: 'Productor', type: 'autocomplete' },
+
+                // ✅ Variedad Real (select dinámico)
                 { key: 'identificacion.variedad', label: 'Variedad Real', type: 'select', options: [], dynamicOptions: 'variedades' },
+
+                // ✅ FIX CLAVE: el grupo debe vivir en el mismo prefijo ("identificacion.")
+                // para que VariedadSelect lo setee correctamente: identificacion.variedad_rotulada_grupo
                 {
-                    key: 'variedad_rotulada_grupo',
+                    key: 'identificacion.variedad_rotulada_grupo',
                     label: 'Variedad Rotulada (Grupo)',
                     type: 'text',
                     readOnly: true,
                 },
+
                 { key: 'huerto_cuartel', label: 'Huerto / Cuartel', type: 'autocomplete' },
                 { key: 'agronomo', label: 'Agrónomo', type: 'text' },
                 { key: 'temporada', label: 'Temporada', type: 'text', readOnly: true },
@@ -97,12 +103,18 @@ const ANALISIS_PRECOSECHA_TEMPLATE: FormTemplate = {
                 { key: 'fecha_analisis', label: 'F.A.', type: 'date', help: 'Fecha de Análisis' },
             ],
         },
+
         {
             key: 'caracterizacion_externa',
             title: '2. Caracterización externa de la muestra',
             description: 'Ingrese los datos de caracterización externa, dimensiones y distribución de calibres.',
             fields: [
-                { key: 'n_frutos_muestra', label: 'N° Frutos de la Muestra', type: 'integer', help: 'Cantidad total de frutos evaluados.' },
+                {
+                    key: 'n_frutos_muestra',
+                    label: 'N° Frutos de la Muestra',
+                    type: 'integer',
+                    help: 'Cantidad total de frutos evaluados.',
+                },
                 {
                     key: 'matriz_frutos_externo',
                     label: 'Matriz Fruto a Fruto',
@@ -124,11 +136,12 @@ const ANALISIS_PRECOSECHA_TEMPLATE: FormTemplate = {
                         diametro: '',
                         peso: '',
                         calibre: '',
-                        _isFixed: true
-                    }))
+                        _isFixed: true,
+                    })),
                 },
                 { key: 'promedio_diametro', label: 'PROMEDIO X Diámetro (mm)', type: 'decimal', readOnly: true, help: 'Cálculo automático.' },
                 { key: 'promedio_peso', label: 'PROMEDIO X Peso (g)', type: 'decimal', readOnly: true, help: 'Cálculo automático.' },
+
                 {
                     key: 'matriz_color_cubrimiento',
                     label: 'Matriz Color de Cubrimiento',
@@ -145,24 +158,28 @@ const ANALISIS_PRECOSECHA_TEMPLATE: FormTemplate = {
                         n_fruto: (i + 1).toString(),
                         color_fondo: '',
                         color_cubrimiento: '',
-                        _isFixed: true
+                        _isFixed: true,
                     })),
+                    // ✅ FIX: dependencia debe apuntar a la nueva key
                     dependency: {
-                        key: 'variedad_rotulada_grupo',
-                        value: ['ROJAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI']
-                    }
+                        key: 'identificacion.variedad_rotulada_grupo',
+                        value: ['ROJAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI'],
+                    },
                 },
+
                 {
                     key: 'promedio_color_cubrimiento',
                     label: 'Promedio Color de Cubrimiento (%)',
                     type: 'decimal',
                     readOnly: true,
                     help: 'Cálculo automático.',
+                    // ✅ FIX: dependencia debe apuntar a la nueva key
                     dependency: {
-                        key: 'variedad_rotulada_grupo',
-                        value: ['ROJAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI']
-                    }
+                        key: 'identificacion.variedad_rotulada_grupo',
+                        value: ['ROJAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI'],
+                    },
                 },
+
                 {
                     key: 'matriz_categorias_calibre',
                     label: 'Distribución por Categorías',
@@ -177,24 +194,28 @@ const ANALISIS_PRECOSECHA_TEMPLATE: FormTemplate = {
                         { key: 'cat_minus_30', label: '-30', type: 'integer' },
                     ],
                     initialRows: [{ _id: uuidv4(), _isFixed: true }],
+                    // ✅ FIX: dependencia debe apuntar a la nueva key
                     dependency: {
-                        key: 'variedad_rotulada_grupo',
-                        value: ['ROJAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI']
-                    }
+                        key: 'identificacion.variedad_rotulada_grupo',
+                        value: ['ROJAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI'],
+                    },
                 },
+
                 {
                     key: 'mensaje_granny_smith',
                     label: 'Distribución por Categorías / Color de Cubrimiento',
                     type: 'text',
                     readOnly: true,
                     help: 'Para la variedad GRANNY SMITH no aplica distribución por color de cubrimiento.',
+                    // ✅ FIX: dependencia debe apuntar a la nueva key
                     dependency: {
-                        key: 'variedad_rotulada_grupo',
-                        value: 'GRANNY SMITH'
-                    }
-                }
+                        key: 'identificacion.variedad_rotulada_grupo',
+                        value: 'GRANNY SMITH',
+                    },
+                },
             ],
         },
+
         {
             key: 'madurez_firmeza',
             title: '3. Madurez: Color Pulpa y Presiones',
@@ -206,7 +227,7 @@ const ANALISIS_PRECOSECHA_TEMPLATE: FormTemplate = {
                     type: 'select',
                     options: ['Blanca', 'Verde - Blanca', 'Verde', 'Blanca - Amarilla', 'Amarilla'],
                     required: false,
-                    help: 'Seleccione el color predominante.'
+                    help: 'Seleccione el color predominante.',
                 },
                 {
                     key: 'matriz_presiones',
@@ -214,14 +235,15 @@ const ANALISIS_PRECOSECHA_TEMPLATE: FormTemplate = {
                     type: 'pressure_matrix',
                     user_can_add_rows: true,
                     help: 'Ingrese Calibre, # Frutos, Brix y detalle de presiones por fruto.',
-                    initialRows: []
+                    initialRows: [],
                 },
                 { key: 'presion_promedio', label: 'PROMEDIO X', type: 'decimal', readOnly: true, help: 'Promedio global de todas las presiones.' },
                 { key: 'presion_max', label: 'MAX', type: 'decimal', readOnly: true, help: 'Valor máximo registrado.' },
                 { key: 'presion_min', label: 'MIN', type: 'decimal', readOnly: true, help: 'Valor mínimo registrado.' },
                 { key: 'sol_promedio', label: 'SOL X (Promedio SOL)', type: 'decimal', readOnly: true },
-            ]
+            ],
         },
+
         {
             key: 'almidon_semilla',
             title: '4. Almidón y Color de Semilla',
@@ -246,11 +268,13 @@ const ANALISIS_PRECOSECHA_TEMPLATE: FormTemplate = {
                         { key: 'f9', label: '9', type: 'decimal' },
                         { key: 'f10', label: '10', type: 'decimal' },
                     ],
-                    initialRows: []
+                    initialRows: [],
                 },
+
                 { key: 'almidon_promedio', label: 'PROMEDIO X (Almidón)', type: 'decimal', readOnly: true },
                 { key: 'almidon_max', label: 'MAX (Almidón)', type: 'decimal', readOnly: true },
                 { key: 'almidon_min', label: 'MIN (Almidón)', type: 'decimal', readOnly: true },
+
                 {
                     key: 'matriz_color_semilla',
                     label: 'Matriz Color de Semilla',
@@ -266,8 +290,9 @@ const ANALISIS_PRECOSECHA_TEMPLATE: FormTemplate = {
                         { key: 'sem_3_4', label: '3/4', type: 'integer' },
                         { key: 'sem_1', label: '1', type: 'integer' },
                     ],
-                    initialRows: []
+                    initialRows: [],
                 },
+
                 {
                     key: 'suma_color_semilla',
                     label: 'Totales (Suma)',
@@ -282,10 +307,13 @@ const ANALISIS_PRECOSECHA_TEMPLATE: FormTemplate = {
                         { key: 'sem_3_4', label: '3/4', type: 'integer' },
                         { key: 'sem_1', label: '1', type: 'integer' },
                     ],
-                    initialRows: [{ _id: uuidv4(), sem_0: 0, sem_1_8: 0, sem_1_4: 0, sem_1_2: 0, sem_3_4: 0, sem_1: 0 }]
-                }
-            ]
+                    initialRows: [
+                        { _id: uuidv4(), sem_0: 0, sem_1_8: 0, sem_1_4: 0, sem_1_2: 0, sem_3_4: 0, sem_1: 0 },
+                    ],
+                },
+            ],
         },
+
         {
             key: 'parametros_quimicos_defectos',
             title: '5. Parámetros Químicos y Defectos Internos',
@@ -295,6 +323,7 @@ const ANALISIS_PRECOSECHA_TEMPLATE: FormTemplate = {
                 { key: 'acidez', label: 'Acidez', type: 'decimal' },
                 { key: 'gasto_ml', label: 'Gasto (ml)', type: 'decimal', help: 'El % de Ácido Málico se calculará automáticamente.' },
                 { key: 'ac_malico_pct', label: '% Ácido Málico', type: 'decimal', readOnly: true, help: 'Cálculo: Gasto (ml) * 0.067' },
+
                 {
                     key: 'matriz_cor_acuoso',
                     label: 'Defectos internos – Cor. Acuoso',
@@ -311,8 +340,9 @@ const ANALISIS_PRECOSECHA_TEMPLATE: FormTemplate = {
                         { _id: uuidv4(), categoria: 'G2', frutos: '', _isFixed: true },
                         { _id: uuidv4(), categoria: 'G3', frutos: '', _isFixed: true },
                         { _id: uuidv4(), categoria: 'G4', frutos: '', _isFixed: true },
-                    ]
+                    ],
                 },
+
                 {
                     key: 'matriz_cor_mohoso',
                     label: 'Defectos internos – Cor. Mohoso',
@@ -331,15 +361,17 @@ const ANALISIS_PRECOSECHA_TEMPLATE: FormTemplate = {
                         { _id: uuidv4(), categoria: 'G2.H', frutos: '', _isFixed: true },
                         { _id: uuidv4(), categoria: 'G3.S', frutos: '', _isFixed: true },
                         { _id: uuidv4(), categoria: 'G3.H', frutos: '', _isFixed: true },
-                    ]
+                    ],
                 },
+
                 { key: 'observaciones', label: 'Observations', type: 'textarea' },
                 { key: 'tecnico', label: 'Técnico (TEC)', type: 'text', help: 'Nombre y Apellido' },
                 { key: 'ayudante', label: 'Ayudante (AYUD.)', type: 'text', help: 'Nombre y Apellido' },
-            ]
-        }
+            ],
+        },
     ],
 };
+
 
 // RECEPCIÓN MADUREZ POMÁCEAS template
 const RECEPCION_MADUREZ_TEMPLATE: FormTemplate = {
@@ -969,138 +1001,124 @@ const PROYECCION_EMBALAJE_TEMPLATE: FormTemplate = {
 // (Tu FormFiller.tsx ya renderiza AutoCompleteProductor cuando type === 'autocomplete' y key incluye 'productor')
 
 const AC_RECEPCION_TEMPLATE: FormTemplate = {
-  id: "REG.CKU.022",
-  title: "ATMÓSFERA CONTROLADA POMÁCEAS",
-  description: "Control de recepción en Atmósfera Controlada.",
-  version: "1.0",
-  status: "Publicada",
-  tags: ["AC", "Recepción"],
-  publishedTo: ["Trabajador CKU", "Administrador"],
-  icon: "wind",
-  sections: [
-    {
-      key: "identificacion",
-      title: "1. Identificación",
-      fields: [
-        { key: "encabezado.planta", label: "Planta", type: "text", readOnly: true },
-        { key: "encabezado.temporada", label: "Temporada", type: "text", readOnly: true },
-        { key: "encabezado.tipo_fruta", label: "Tipo Fruta", type: "select", options: ["MANZANA", "PERA"] },
-        { key: "encabezado.camara", label: "Cámara", type: "text" },
+    id: "REG.CKU.022",
+    title: "ATMÓSFERA CONTROLADA POMÁCEAS",
+    description: "Control de recepción en Atmósfera Controlada.",
+    version: "1.0",
+    status: "Publicada",
+    tags: ["AC", "Recepción"],
+    publishedTo: ["Trabajador CKU", "Administrador"],
+    icon: "wind",
+    sections: [
+        {
+            key: "identificacion",
+            title: "1. Identificación",
+            fields: [
+                { key: "encabezado.planta", label: "Planta", type: "text", readOnly: true },
+                { key: "encabezado.temporada", label: "Temporada", type: "text", readOnly: true },
+                { key: "encabezado.tipo_fruta", label: "Tipo Fruta", type: "select", options: ["MANZANA", "PERA"] },
+                { key: "encabezado.camara", label: "Cámara", type: "text" },
 
-        // ✅ AQUÍ EL FIX: Productor como autocomplete
-        { key: "encabezado.productor", label: "Productor", type: "autocomplete" },
+                // ✅ Productor autocomplete OK
+                { key: "encabezado.productor", label: "Productor", type: "autocomplete" },
+
+                // ✅ FIX: activar lógica VariedadSelect del FormFiller
+                { key: "encabezado.variedad", label: "Variedad Real", type: "select", options: [], dynamicOptions: "variedades" },
+
+                { key: "encabezado.dias_ac", label: "Días en AC", type: "integer" },
+                {
+                    key: "encabezado.tipo_frio",
+                    label: "Tipo de Frío",
+                    type: "select",
+                    options: ["AC", "AC-S", "AC-D", "FL", "FL-S", "FC-1S", "Convencional"],
+                },
+                { key: "encabezado.bins_lote", label: "Bins Lote", type: "text" },
+                { key: "encabezado.folio_cku", label: "Folio CKU", type: "text" },
+                { key: "recepcion.tarja_entrada", label: "Tarja Entrada", type: "text" },
+                { key: "recepcion.fecha_cosecha", label: "Fecha Cosecha", type: "date" },
+                { key: "recepcion.fecha_analisis", label: "Fecha Análisis", type: "date" },
+                { key: "recepcion.temp_pulpa", label: "T° Pulpa (°C)", type: "decimal" },
+            ],
+        },
 
         {
-          key: "encabezado.variedad",
-          label: "Variedad Real",
-          type: "select",
-          options: [
-            "Gala",
-            "Fuji",
-            "Granny Smith",
-            "Pink Lady",
-            "Cripps Pink",
-            "Ambrosia",
-            "Honeycrisp",
-            "Bartlett",
-            "Packhams",
-            "Abate Fetel",
-          ],
+            key: "step_3_presiones",
+            title: "2. Presiones Fruto",
+            fields: [
+                {
+                    key: "matriz_presiones",
+                    label: "Presiones",
+                    type: "pressure_matrix",
+                    user_can_add_rows: true,
+                    user_can_add_columns: false,
+                    hideBrix: true,
+                    hideCalibre: true,
+                    showSummaryColumns: true,
+                    showOnlyAverage: true,
+                    initialRows: [
+                        {
+                            _id: uuidv4(),
+                            n_frutos: "",
+                            detalles: [],
+                            _isFixed: true,
+                        },
+                    ],
+                },
+                { key: "solidos_solubles", label: "Sólidos solubles (°Brix)", type: "decimal" },
+            ],
         },
-        { key: "encabezado.dias_ac", label: "Días en AC", type: "integer" },
-        {
-          key: "encabezado.tipo_frio",
-          label: "Tipo de Frío",
-          type: "select",
-          options: ["AC", "AC-S", "AC-D", "FL", "FL-S", "FC-1S", "Convencional"],
-        },
-        { key: "encabezado.bins_lote", label: "Bins Lote", type: "text" },
-        { key: "encabezado.folio_cku", label: "Folio CKU", type: "text" },
-        { key: "recepcion.tarja_entrada", label: "Tarja Entrada", type: "text" },
-        { key: "recepcion.fecha_cosecha", label: "Fecha Cosecha", type: "date" },
-        { key: "recepcion.fecha_analisis", label: "Fecha Análisis", type: "date" },
-        { key: "recepcion.temp_pulpa", label: "T° Pulpa (°C)", type: "decimal" },
-      ],
-    },
 
-    {
-      key: "step_3_presiones",
-      title: "2. Presiones Fruto",
-      fields: [
         {
-          key: "matriz_presiones",
-          label: "Presiones",
-          type: "pressure_matrix",
-          user_can_add_rows: true,
-          user_can_add_columns: false,
-          hideBrix: true,
-          hideCalibre: true,
-          showSummaryColumns: true,
-          showOnlyAverage: true,
-          initialRows: [
-            {
-              _id: uuidv4(),
-              n_frutos: "",
-              detalles: [],
-              _isFixed: true,
-            },
-          ],
+            key: "step_4_matriz_fruto",
+            title: "3. Matriz Test de Almidón",
+            fields: [
+                {
+                    key: "matriz_fruto_3",
+                    label: "Matriz Test de Almidón",
+                    type: "dynamic_table",
+                    user_can_add_rows: true,
+                    user_can_add_columns: false,
+                    columns: [
+                        { key: "concepto", label: "Concepto", type: "text", readOnly: false },
+                        { key: "c1", label: "1", type: "decimal" },
+                        { key: "c2", label: "2", type: "decimal" },
+                        { key: "c3", label: "3", type: "decimal" },
+                        { key: "c4", label: "4", type: "decimal" },
+                        { key: "c5", label: "5", type: "decimal" },
+                        { key: "c6", label: "6", type: "decimal" },
+                        { key: "c7", label: "7", type: "decimal" },
+                        { key: "c8", label: "8", type: "decimal" },
+                        { key: "c9", label: "9", type: "decimal" },
+                        { key: "c10", label: "10", type: "decimal" },
+                        { key: "cx", label: "X", type: "decimal", calc: "average", readOnly: true },
+                        { key: "porcentaje", label: "Porcentaje", type: "decimal", excludeFromCalc: true },
+                    ],
+                    initialRows: [
+                        { _id: uuidv4(), concepto: "TEST ALMIDÓN", _isFixed: true },
+                        { _id: uuidv4(), concepto: "COLOR DE FONDO", _isFixed: true },
+                        { _id: uuidv4(), concepto: "COLOR DE PULPA", _isFixed: true },
+                        { _id: uuidv4(), concepto: "CORAZÓN ACUOSO/MOHOSO", _isFixed: true },
+                        { _id: uuidv4(), concepto: "DESHIDRATACIÓN", _isFixed: true },
+                        { _id: uuidv4(), concepto: "BITTER PIT / LENTIC.", _isFixed: true },
+                        { _id: uuidv4(), concepto: "SUNSCALD", _isFixed: true },
+                        { _id: uuidv4(), concepto: "ESCALD / STAINING", _isFixed: true },
+                        { _id: uuidv4(), concepto: "CRACKING / PARTIDURA", _isFixed: true },
+                        { _id: uuidv4(), concepto: "PUDRICIÓN", _isFixed: true },
+                    ],
+                },
+            ],
         },
-        { key: "solidos_solubles", label: "Sólidos solubles (°Brix)", type: "decimal" },
-      ],
-    },
 
-    {
-      key: "step_4_matriz_fruto",
-      title: "3. Matriz Test de Almidón",
-      fields: [
         {
-          key: "matriz_fruto_3",
-          label: "Matriz Test de Almidón",
-          type: "dynamic_table",
-          user_can_add_rows: true,
-          user_can_add_columns: false,
-          columns: [
-            { key: "concepto", label: "Concepto", type: "text", readOnly: false },
-            { key: "c1", label: "1", type: "decimal" },
-            { key: "c2", label: "2", type: "decimal" },
-            { key: "c3", label: "3", type: "decimal" },
-            { key: "c4", label: "4", type: "decimal" },
-            { key: "c5", label: "5", type: "decimal" },
-            { key: "c6", label: "6", type: "decimal" },
-            { key: "c7", label: "7", type: "decimal" },
-            { key: "c8", label: "8", type: "decimal" },
-            { key: "c9", label: "9", type: "decimal" },
-            { key: "c10", label: "10", type: "decimal" },
-            { key: "cx", label: "X", type: "decimal", calc: "average", readOnly: true },
-            { key: "porcentaje", label: "Porcentaje", type: "decimal", excludeFromCalc: true },
-          ],
-          initialRows: [
-            { _id: uuidv4(), concepto: "TEST ALMIDÓN", _isFixed: true },
-            { _id: uuidv4(), concepto: "COLOR DE FONDO", _isFixed: true },
-            { _id: uuidv4(), concepto: "COLOR DE PULPA", _isFixed: true },
-            { _id: uuidv4(), concepto: "CORAZÓN ACUOSO/MOHOSO", _isFixed: true },
-            { _id: uuidv4(), concepto: "DESHIDRATACIÓN", _isFixed: true },
-            { _id: uuidv4(), concepto: "BITTER PIT / LENTIC.", _isFixed: true },
-            { _id: uuidv4(), concepto: "SUNSCALD", _isFixed: true },
-            { _id: uuidv4(), concepto: "ESCALD / STAINING", _isFixed: true },
-            { _id: uuidv4(), concepto: "CRACKING / PARTIDURA", _isFixed: true },
-            { _id: uuidv4(), concepto: "PUDRICIÓN", _isFixed: true },
-          ],
+            key: "resolucion_final",
+            title: "4. Observaciones y Firmas",
+            fields: [
+                { key: "observaciones", label: "Observaciones", type: "textarea" },
+                { key: "realizado_por", label: "Realizado por", type: "text" },
+                { key: "revisado_por", label: "Revisado por", type: "text" },
+            ],
         },
-      ],
-    },
-
-    {
-      key: "resolucion_final",
-      title: "4. Observaciones y Firmas",
-      fields: [
-        { key: "observaciones", label: "Observaciones", type: "textarea" },
-        { key: "realizado_por", label: "Realizado por", type: "text" },
-        { key: "revisado_por", label: "Revisado por", type: "text" },
-      ],
-    },
-  ],
+    ],
 };
 
 
@@ -1109,7 +1127,7 @@ const PACKING_TEMPLATE: FormTemplate = {
     title: 'CONTROL DE PACKING',
     description: 'Registro de control de calidad en línea de packing.',
     version: '1.0',
-    status: 'Publicada',
+    status: 'Borrador',
     tags: ['Packing', 'Calidad'],
     publishedTo: ['Trabajador CKU', 'Administrador'],
     icon: 'box',
@@ -1127,6 +1145,22 @@ const PACKING_TEMPLATE: FormTemplate = {
     ]
 };
 
+// ✅ REG.CKU.017 - C.K.U Empaque (CORREGIDO / REVISADO / ALINEADO CON FormFiller)
+// Cambios clave:
+// 1) Productor pasa a encabezado.productor (para no chocar con otras plantillas y mantener “encabezado”)
+// 2) Variedad usa dynamicOptions:"variedades" y queda en encabezado.variedad
+// 3) Grupo queda en encabezado.variedad_rotulada_grupo y BLOQUEADO (text + readOnly)
+//    (esto se alinea con tu FormFiller: grupoKey = "encabezado.variedad_rotulada_grupo")
+// 4) temporada ya existe como readOnly (lo setea tu FormFiller con key "temporada" para REG.CKU.017)
+// 5) autocomplete de productor: field.key incluye "productor" => usa AutoCompleteProductor sin tocar FormFiller
+
+// ✅ REG.CKU.017 - C.K.U Empaque (COMPLETO / CORREGIDO / REVISADO / FUNCIONAL)
+// - FIX 1: La estructura estaba rota (cerrabas sections antes y luego agregabas más bloques)
+// - FIX 2: Normalización de keys a encabezado.* donde corresponde (productor, variedad, grupo)
+// - FIX 3: Variedad Rotulada (Grupo) queda BLOQUEADO (text + readOnly) y se auto-llena desde FormFiller
+// - FIX 4: Mantengo 'temporada' SIN encabezado (tu FormFiller así lo setea para REG.CKU.017)
+// - FIX 5: Mantengo tus tablas y lógica actual (3A/3B/3C, 4 Mercado Interno, 5 Control Peso)
+
 const EMPAQUE_PRESIZE_TEMPLATE: FormTemplate = {
     id: 'REG.CKU.017',
     title: 'C.K.U Empaque',
@@ -1137,6 +1171,9 @@ const EMPAQUE_PRESIZE_TEMPLATE: FormTemplate = {
     publishedTo: ['Trabajador CKU', 'Administrador'],
     icon: 'layers',
     sections: [
+        // ---------------------------------------------------
+        // 1) IDENTIFICACIÓN
+        // ---------------------------------------------------
         {
             key: 'encabezado',
             title: 'Identificación',
@@ -1144,21 +1181,19 @@ const EMPAQUE_PRESIZE_TEMPLATE: FormTemplate = {
                 { key: 'encabezado.planta', label: 'Planta', type: 'text', readOnly: true },
                 { key: 'encabezado.tipo_fruta', label: 'Tipo Fruta', type: 'select', options: ['MANZANA', 'PERA'] },
 
-                // ✅ Productor como en REG.CKU.013 (autocomplete)
-                { key: 'productor', label: 'Productor', type: 'autocomplete' },
+                // ✅ Autocomplete productor (RenderField detecta field.key incluye "productor")
+                { key: 'encabezado.productor', label: 'Productor', type: 'autocomplete' },
 
-                { key: 'codigo_productor', label: 'Código Productor', type: 'text' },
-                { key: 'mercado', label: 'Mercado', type: 'text' },
+                { key: 'encabezado.codigo_productor', label: 'Código Productor', type: 'text' },
+                { key: 'encabezado.mercado', label: 'Mercado', type: 'text' },
 
-                // ✅ Variedad Real como en REG.CKU.013 (select + dynamicOptions)
-                { key: 'variedad', label: 'Variedad Real', type: 'select', options: [], dynamicOptions: 'variedades' },
+                // ✅ Variedad Real (usa VariedadSelect via FormFiller por dynamicOptions:"variedades")
+                //    y automáticamente asigna encabezado.variedad_rotulada_grupo
+                { key: 'encabezado.variedad', label: 'Variedad Real', type: 'select', options: [], dynamicOptions: 'variedades' },
 
-                {
-                    key: 'variedad_rotulada_grupo',
-                    label: 'Variedad Rotulada (Grupo)',
-                    type: 'select',
-                    options: ['ROJAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI', 'GRANNY SMITH'],
-                },
+                // ✅ Grupo autoasignado y BLOQUEADO
+                { key: 'encabezado.variedad_rotulada_grupo', label: 'Variedad Rotulada (Grupo)', type: 'text', readOnly: true },
+
                 { key: 'calibre', label: 'Calibre', type: 'integer' },
                 { key: 'categoria', label: 'Categoría', type: 'text' },
                 { key: 'ot', label: 'O.T', type: 'text' },
@@ -1170,10 +1205,17 @@ const EMPAQUE_PRESIZE_TEMPLATE: FormTemplate = {
                     type: 'select',
                     options: ['AC-S', 'AC-D', 'FC-S', 'FC-1', 'FC-1S', 'FC-2', 'FC-2S', 'FC-3', 'FC-3S'],
                 },
+
+                // ✅ tu FormFiller setea temporada en REG.CKU.017 como 'temporada'
                 { key: 'temporada', label: 'Temporada', type: 'text', readOnly: true },
+
                 { key: 'fecha_embalaje', label: 'Fecha Embalaje', type: 'date' },
-            ]
+            ],
         },
+
+        // ---------------------------------------------------
+        // 2) PRESIONES POR CALIBRE
+        // ---------------------------------------------------
         {
             key: 'presiones_calibre',
             title: '2. Presiones por calibre',
@@ -1184,13 +1226,23 @@ const EMPAQUE_PRESIZE_TEMPLATE: FormTemplate = {
                     type: 'pressure_matrix',
                     user_can_add_rows: true,
                     hideBrix: true,
-                    initialRows: []
+                    initialRows: [],
                 },
-                { key: 'presion_promedio', label: 'PROMEDIO X', type: 'decimal', readOnly: true, help: 'Promedio global de todas las presiones.' },
+                {
+                    key: 'presion_promedio',
+                    label: 'PROMEDIO X',
+                    type: 'decimal',
+                    readOnly: true,
+                    help: 'Promedio global de todas las presiones.',
+                },
                 { key: 'presion_max', label: 'MAX', type: 'decimal', readOnly: true, help: 'Valor máximo registrado.' },
                 { key: 'presion_min', label: 'MIN', type: 'decimal', readOnly: true, help: 'Valor mínimo registrado.' },
-            ]
+            ],
         },
+
+        // ---------------------------------------------------
+        // 3) CONTROL DE CALIDAD EN LÍNEA
+        // ---------------------------------------------------
         {
             key: 'control_calidad_linea',
             title: '3. Control de Calidad en Línea',
@@ -1201,14 +1253,14 @@ const EMPAQUE_PRESIZE_TEMPLATE: FormTemplate = {
                     type: 'dynamic_table',
                     user_can_add_rows: false,
                     user_can_add_columns: false,
-                    columns: [
-                        { key: 'concepto', label: 'Concepto', type: 'text', readOnly: true },
-                        ...getFixedLineColumns(),
-                    ],
-                    initialRows: [
-                        'Productor', 'Calibre', 'Categoría', 'Peso', 'Plu %', 'Encerado (B-R-M)'
-                    ].map(c => ({ _id: uuidv4(), concepto: c, _isFixed: true }))
+                    columns: [{ key: 'concepto', label: 'Concepto', type: 'text', readOnly: true }, ...getFixedLineColumns()],
+                    initialRows: ['Productor', 'Calibre', 'Categoría', 'Peso', 'Plu %', 'Encerado (B-R-M)'].map((c) => ({
+                        _id: uuidv4(),
+                        concepto: c,
+                        _isFixed: true,
+                    })),
                 },
+
                 {
                     key: 'tabla_danos_defectos',
                     label: '3B – Daños y Defectos – %',
@@ -1220,15 +1272,29 @@ const EMPAQUE_PRESIZE_TEMPLATE: FormTemplate = {
                         return [
                             { key: 'concepto', label: 'Defecto', type: 'text', readOnly: true },
                             ...baseCols,
-                            { key: 'promedio_fila', label: 'Promedio', type: 'decimal', readOnly: true }
+                            { key: 'promedio_fila', label: 'Promedio', type: 'decimal', readOnly: true },
                         ];
                     })(),
                     initialRows: [
-                        'Golpe sol', 'Machucón', 'Herida abierta', 'Corcho', 'Roce', 'Russet', 'Partidura',
-                        'Amarilla', 'Len/Bitter', 'Falta color', 'Deforme', 'Infiltración', 'Escaldado',
-                        'Otros', 'Comercial', '% Comercial'
-                    ].map(c => ({ _id: uuidv4(), concepto: c, _isFixed: true }))
+                        'Golpe sol',
+                        'Machucón',
+                        'Herida abierta',
+                        'Corcho',
+                        'Roce',
+                        'Russet',
+                        'Partidura',
+                        'Amarilla',
+                        'Len/Bitter',
+                        'Falta color',
+                        'Deforme',
+                        'Infiltración',
+                        'Escaldado',
+                        'Otros',
+                        'Comercial',
+                        '% Comercial',
+                    ].map((c) => ({ _id: uuidv4(), concepto: c, _isFixed: true })),
                 },
+
                 {
                     key: 'tabla_fuera_categoria',
                     label: '3C – Fuera de Categoría',
@@ -1240,25 +1306,27 @@ const EMPAQUE_PRESIZE_TEMPLATE: FormTemplate = {
                         return [
                             { key: 'concepto', label: 'Item', type: 'text', readOnly: true },
                             ...lineCols,
-                            { key: 'promedio_fila', label: 'Promedio', type: 'decimal', readOnly: true }
+                            { key: 'promedio_fila', label: 'Promedio', type: 'decimal', readOnly: true },
                         ];
                     })(),
                     initialRows: (() => {
-                        const rows = ['Superior %', 'Inferior %', 'Choice %', 'Resolución'].map(c => {
+                        const rows = ['Superior %', 'Inferior %', 'Choice %', 'Resolución'].map((c) => {
                             const row: any = { _id: uuidv4(), concepto: c, _isFixed: true };
                             if (c === 'Resolución') {
                                 row._rowOptions = {};
-                                for (let i = 1; i <= 30; i++) {
-                                    row._rowOptions[`l${i}`] = ['Aprobado', 'Rechazado'];
-                                }
+                                for (let i = 1; i <= 30; i++) row._rowOptions[`l${i}`] = ['Aprobado', 'Rechazado'];
                             }
                             return row;
                         });
                         return rows;
-                    })()
-                }
-            ]
+                    })(),
+                },
+            ],
         },
+
+        // ---------------------------------------------------
+        // 4) MERCADO INTERNO
+        // ---------------------------------------------------
         {
             key: 'mercado_interno',
             title: '4. Mercado Interno',
@@ -1271,31 +1339,62 @@ const EMPAQUE_PRESIZE_TEMPLATE: FormTemplate = {
                     user_can_add_columns: false,
                     columns: getPresizerInternalMarketColumns(),
                     initialRows: [
-                        'Golpe sol', 'Machucón', 'Herida abierta', 'Corcho', 'Roce', 'Russet',
-                        'Partidura', 'Infiltración', 'Lenticelosis', 'Bitter pit', 'Pudrición',
-                        'Sunscald', 'Escaldado', 'Staining', 'Litisias', 'Daño polilla',
-                        'Escama', 'Venturia', 'Penacho', 'Granizo', 'Deforme', 'Falta color',
-                        'Pigmentación', 'Deshidratación', 'Cracking', 'Hoja / restos floral',
-                        'Fruta expor.', 'N° frutos'
-                    ].map(d => {
+                        'Golpe sol',
+                        'Machucón',
+                        'Herida abierta',
+                        'Corcho',
+                        'Roce',
+                        'Russet',
+                        'Partidura',
+                        'Infiltración',
+                        'Lenticelosis',
+                        'Bitter pit',
+                        'Pudrición',
+                        'Sunscald',
+                        'Escaldado',
+                        'Staining',
+                        'Litisias',
+                        'Daño polilla',
+                        'Escama',
+                        'Venturia',
+                        'Penacho',
+                        'Granizo',
+                        'Deforme',
+                        'Falta color',
+                        'Pigmentación',
+                        'Deshidratación',
+                        'Cracking',
+                        'Hoja / restos floral',
+                        'Fruta expor.',
+                        'N° frutos',
+                    ].map((d) => {
                         const row: any = {
                             _id: uuidv4(),
                             defecto: d,
                             _isFixed: true,
-                            _isReadOnlyRow: d === 'N° frutos'
+                            _isReadOnlyRow: d === 'N° frutos',
                         };
                         for (let i = 1; i <= 30; i++) row[`f${i}`] = '';
                         row.promedio_x = '';
                         return row;
-                    })
-                }
-            ]
+                    }),
+                },
+            ],
         },
+
+        // ---------------------------------------------------
+        // 5) CONTROL DE PESO + OBS / FIRMAS
+        // ---------------------------------------------------
         {
             key: 'control_peso',
             title: '5. Control de Peso',
             fields: [
-                { key: 'umbral_peso', label: 'Umbral de peso', type: 'decimal', help: 'Los pesos menores a este valor se resaltarán en rojo.' },
+                {
+                    key: 'umbral_peso',
+                    label: 'Umbral de peso',
+                    type: 'decimal',
+                    help: 'Los pesos menores a este valor se resaltarán en rojo.',
+                },
                 {
                     key: 'tabla_control_peso',
                     label: 'Control de Peso',
@@ -1303,16 +1402,23 @@ const EMPAQUE_PRESIZE_TEMPLATE: FormTemplate = {
                     user_can_add_rows: true,
                     user_can_add_columns: false,
                     columns: getWeightControlColumns(),
-                    initialRows: []
+                    initialRows: [],
                 },
-                { key: 'promedio_pesos_general', label: 'Promedio de Pesos General', type: 'decimal', readOnly: true, help: 'Calculado como (Suma total pesos) / (Suma total # Cajas)' },
+                {
+                    key: 'promedio_pesos_general',
+                    label: 'Promedio de Pesos General',
+                    type: 'decimal',
+                    readOnly: true,
+                    help: 'Calculado como (Suma total pesos) / (Suma total # Cajas)',
+                },
                 { key: 'observaciones', label: 'Observaciones', type: 'textarea' },
                 { key: 'realizado_por', label: 'Realizado por', type: 'text' },
-                { key: 'revisado_por', label: 'Revisado por', type: 'text' }
-            ]
-        }
-    ]
+                { key: 'revisado_por', label: 'Revisado por', type: 'text' },
+            ],
+        },
+    ],
 };
+
 
 const CONDICION_POMACEAS_TEMPLATE: FormTemplate = {
     id: 'REG.CKU.018',
