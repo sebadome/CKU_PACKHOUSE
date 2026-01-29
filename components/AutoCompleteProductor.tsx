@@ -12,7 +12,7 @@ const AutocompleteProductor: React.FC<Props> = ({ value, onChange, disabled }) =
   const [options, setOptions] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   const buscar = async (q: string) => {
     if (!q || q.length < 2) {
       setOptions([]);
@@ -20,8 +20,8 @@ const AutocompleteProductor: React.FC<Props> = ({ value, onChange, disabled }) =
       return;
     }
 
-    const url = `http://localhost:4000/api/catalogo/autocomplete/productor?q=${encodeURIComponent(q)}`;
-
+    //const url = `http://localhost:4000/api/catalogo/autocomplete/productor?q=${encodeURIComponent(q)}`;
+    const url = `${API_BASE_URL}/api/catalogo/autocomplete/huerto?q=${encodeURIComponent(q)}`;
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`Error en fetch: ${res.statusText}`);

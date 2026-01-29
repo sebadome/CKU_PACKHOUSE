@@ -4,8 +4,7 @@
   "private": true,
   "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && powershell -NoProfile -Command \"New-Item -ItemType Directory -Force 'dist/routes' | Out-Null; Copy-Item -Force 'src/routes/*.js' 'dist/routes/'\"",
     "start": "node dist/index.js"
   },
   "dependencies": {
