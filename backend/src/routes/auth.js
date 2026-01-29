@@ -72,7 +72,7 @@ router.post('/register', async (req, res) => {
  */
 router.post('/login', async (req, res) => {
   const { rut, password } = req.body;
-  console.log('LOGIN BODY:', req.body);
+  
 
   try {
     const pool = await getPool();

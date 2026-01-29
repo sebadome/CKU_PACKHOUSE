@@ -254,6 +254,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
       onChange(nextData, columns);
       setFindingsModalState(null);
   };
+  
 
   const renderCellInput = (
     column: DynamicTableColumn,

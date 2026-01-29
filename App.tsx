@@ -85,7 +85,7 @@ const AppContent: React.FC = () => {
     <Routes>
       <Route path="/" element={<AuthLanding />} />
       <Route path="/login" element={<Login />} />
-     { <Route path="/registro" element={<Registro />} />}
+     {/* <Route path="/registro" element={<Registro />} />*/}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
