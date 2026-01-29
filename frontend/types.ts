@@ -13,10 +13,7 @@ export interface User {
   rol: UserRole;
 }
 
-export interface VariedadOption {
-  variedad: string;
-  grupo: string;
-}
+
 
 
 
@@ -37,6 +34,12 @@ export type FieldType =
   | 'dynamic_table'
   | 'pressure_matrix'
   | 'autocomplete';  
+
+export interface VariedadOption {
+  variedad: string;
+  grupo: string;
+}
+
 
 export interface FieldValidation {
   min?: number;
@@ -60,6 +63,7 @@ export interface DynamicTableColumn {
   readOnly?: boolean;
   help?: string;
   excludeFromCalc?: boolean; // NEW: Allows excluding specific columns from row calculations
+cellProps?: (col: DynamicTableColumn) => React.HTMLAttributes<HTMLInputElement>;
 }
 
 // NEW: Interface for field dependencies (conditional visibility)
@@ -93,7 +97,8 @@ export interface FormField {
   hideCalibre?: boolean; // NEW: Propiedad para ocultar calibre en matrices de presión
   showSummaryColumns?: boolean; // NEW: Propiedad para mostrar MAX, MIN, X en matrices de presión
   showOnlyAverage?: boolean; // NEW: Propiedad para mostrar solo el promedio en matrices de presión
-  isWeightMode?: boolean; // NEW: Indica si la matriz de presiones opera en modo pesos
+  isWeightMode?: boolean;
+  campo?: string; // NEW: Indica si la matriz de presiones opera en modo pesos
 }
 
 export interface FormSection {

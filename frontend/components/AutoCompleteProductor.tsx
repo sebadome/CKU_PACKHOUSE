@@ -7,21 +7,21 @@ interface Props {
   disabled?: boolean;
 }
 
-const AutocompleteHuerto: React.FC<Props> = ({ value, onChange }) => {
+const AutocompleteProductor: React.FC<Props> = ({ value, onChange }) => {
   const [options, setOptions] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Función que busca opciones en la API
   const buscar = async (q: string) => {
-    console.log('buscando huertos para:', q);
+    console.log('buscando productores para:', q);
     if (!q || q.length < 2) {
       setOptions([]);
       setOpen(false);
       return;
     }
 
-    const url = `http://localhost:3001/api/catalogo/autocomplete/huerto?q=${encodeURIComponent(q)}`;
+    const url = `http://localhost:3001/api/catalogo/autocomplete/productor?q=${encodeURIComponent(q)}`;
     console.log('Autocomplete fetch URL:', url);
 
     try {
@@ -33,7 +33,7 @@ const AutocompleteHuerto: React.FC<Props> = ({ value, onChange }) => {
       setOptions(data);
       setOpen(data.length > 0);
     } catch (err) {
-      console.error('Error AutocompleteHuerto:', err);
+      console.error('Error AutocompleteProductor:', err);
       setOptions([]);
       setOpen(false);
     }
@@ -53,14 +53,14 @@ const AutocompleteHuerto: React.FC<Props> = ({ value, onChange }) => {
   return (
     <div ref={containerRef} className="relative w-full">
       <Input
-        label="Huerto"
+        label="Productor"
         value={value ?? ''}
         onChange={(e) => {
           onChange(e.target.value);
           buscar(e.target.value);
         }}
         onFocus={() => value && buscar(value)}
-        placeholder="Escriba nombre de huerto"
+        placeholder="Escriba nombre del productor"
         autoComplete="off"
       />
 
@@ -84,4 +84,4 @@ const AutocompleteHuerto: React.FC<Props> = ({ value, onChange }) => {
   );
 };
 
-export default AutocompleteHuerto;
+export default AutocompleteProductor;

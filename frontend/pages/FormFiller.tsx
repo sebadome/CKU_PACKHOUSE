@@ -26,9 +26,14 @@ import { PressureMatrixManager, PressureEntry } from "../components/PressureMatr
 import { Modal } from "../components/ui/Modal";
 import { getDynamicOptions } from "../dynamicOptions";
 import AutocompleteHuertos from "@/components/AutoCompleteCatalog";
-import Variedad_A_Grupo from "../variedadGrupo";
+
 import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
+
+import VariedadSelect from "@/components/variedadgrupo";
+
+import AutocompleteHuerto from "@/components/AutoCompleteCatalog";
+import AutocompleteProductor from "@/components/AutoCompleteProductor";
 
 
 
@@ -62,7 +67,7 @@ const FormFiller: React.FC<FormFillerProps> = ({
   const [activeSection, setActiveSection] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-    const [dynamicOptionsCache, setDynamicOptionsCache] = useState<Record<string, string[]>>({});
+  const [dynamicOptionsCache, setDynamicOptionsCache] = useState<Record<string, string[]>>({});
   
   const [isDirty, setIsDirty] = useState(false);
   const fromNewRef = useRef(location.state?.fromNew || false);
@@ -120,49 +125,36 @@ const FormFiller: React.FC<FormFillerProps> = ({
 
         const next = JSON.parse(JSON.stringify(prev));
 
-        // ============================================
-        // 1️⃣ AUTO-ASIGNAR GRUPO AL CAMBIAR VARIEDAD
-        // ============================================
-        if (
-        (template?.id === 'REG.CKU.013' || template?.id === 'REG.CKU.015' || template?.id === 'REG.CKU.017') &&
-        key === 'identificacion.variedad'
-        ) {
-        const grupo = Variedad_A_Grupo[value];
+      
 
-        if (grupo) {
-            if (template.id === 'REG.CKU.013') {
-            _.set(next.data, 'recepcion.variedad_rotulada_grupo', grupo);
-            }
-            
-            if (template.id === 'REG.CKU.017') {
-            _.set(next.data, 'recepcion.variedad_rotulada_grupo', grupo);
-            }
-
-
-            if (template.id === 'REG.CKU.015') {
-            _.set(next.data, 'recepcion.variedad_rotulada_grupo', grupo);
-            }
-        }
-        }
 
         // ============================================
         // 2️⃣ DISPARAR MATRIZ – REG.CKU.013
         // ============================================
-        if (key === 'variedad_rotulada_grupo' && template?.id === 'REG.CKU.013') {
-        const currentVariety = _.get(next.data, key);
-        if (currentVariety !== value) {
+        if (
+        template?.id === 'REG.CKU.013' &&
+        key === 'recepcion.variedad_rotulada_grupo'
+        ) {
+        const prevValue = _.get(prev.data, key);
+
+        if (prevValue !== value) {
             _.set(next.data, 'matriz_categorias_calibre', [
             { _id: uuidv4(), _isFixed: true }
             ]);
         }
         }
 
+
         // ============================================
         // 3️⃣ DISPARAR MATRIZ – REG.CKU.015
         // ============================================
-        if (key === 'recepcion.variedad_rotulada_grupo' && template?.id === 'REG.CKU.015') {
-        const currentVariety = _.get(next.data, key);
-        if (currentVariety !== value) {
+        if (
+        template?.id === 'REG.CKU.015' &&
+        key === 'recepcion.variedad_rotulada_grupo'
+        ) {
+        const prevValue = _.get(prev.data, key);
+
+        if (prevValue !== value) {
             _.set(next.data, 'tabla_color_cubrimiento', [
             { _id: uuidv4(), _isFixed: true }
             ]);
@@ -480,7 +472,8 @@ const FormFiller: React.FC<FormFillerProps> = ({
 
     if (variety && targetTableKey) {
       let labels: string[] | null = null;
-      if (variety === 'ROJAS') labels = ["+95", "+85", "+76", "-76"];
+      if (variety === 'ROJA LISAS') labels = ["+95", "+85", "+76", "-76"];
+      else if (variety === 'ROJA RAYADAS') labels = ["+95", "+85", "+76", "-76"];
       else if (variety === 'GALA') labels = ["+50", "+50", "+30", "-30"];
       else if (variety === 'CRIPPS PINK') labels = ["+40", "+30", "-30"];
       else if (variety === 'AMBROSIA') labels = ["+40", "+10", "-10"];
@@ -1820,6 +1813,7 @@ const RenderField: React.FC<{
         step={field.type === 'integer' ? '1' : 'any'} 
         value={value ?? ""} 
         onChange={handleInputChange} 
+        onWheel={(e) => e.preventDefault()}
         disabled={disabled} 
         error={error} 
         autoComplete="off"
@@ -1828,15 +1822,47 @@ const RenderField: React.FC<{
         className="text-sm"
       />;
         case "select":
-            const dynamicOpts = field.dynamicOptions ? (dynamicOptionsCache ? dynamicOptionsCache[field.dynamicOptions] || [] : []) : null;
+            // ✅ SELECT ESPECIAL: VARIEDADES (BD mapea variedad → grupo)
+            if (field.dynamicOptions === 'variedades') {
+                return (
+                <VariedadSelect
+                    value={value ?? ''}
+                    disabled={disabled}
+                    onChange={(variedad, grupo) => {
+                    // guarda la variedad
+                    onChange(field.key, variedad);
+
+                    // guarda automáticamente el grupo
+                    onChange('recepcion.variedad_rotulada_grupo', grupo);
+                    }}
+                />
+                );
+            }
+
+            // ✅ SELECT NORMAL (todo lo demás)
+            const dynamicOpts = field.dynamicOptions
+                ? (dynamicOptionsCache?.[field.dynamicOptions] || [])
+                : [];
+
             return (
-                <Select id={field.key} name={field.key} value={value ?? ""} onChange={handleInputChange} disabled={disabled} error={error} className="text-sm">
-                    <option value="">-- Seleccionar --</option>
-                    {field.dynamicOptions
-                        ? (dynamicOpts.map((opt) => <option key={opt} value={opt}>{opt}</option>))
-                        : (field.options || []).map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+                <Select
+                id={field.key}
+                name={field.key}
+                value={value ?? ""}
+                onChange={handleInputChange}
+                disabled={disabled}
+                error={error}
+                className="text-sm"
+                >
+                <option value="">-- Seleccionar --</option>
+                {(field.dynamicOptions ? dynamicOpts : field.options || []).map((opt) => (
+                    <option key={opt} value={opt}>
+                    {opt}
+                    </option>
+                ))}
                 </Select>
             );
+
     case "boolean":
       return <input id={field.key} name={field.key} type="checkbox" className="h-5 w-5 rounded border-gray-300 text-cku-blue focus:ring-cku-blue disabled:opacity-50" checked={!!value} onChange={(e) => onChange(field.key, e.target.checked)} disabled={disabled} />;
     case "textarea":
@@ -1844,15 +1870,34 @@ const RenderField: React.FC<{
     case "dynamic_table":
       return <DynamicTable columns={dynamicSchema || field.columns || []} data={value || []} onChange={(data, cols) => onChange(field.key, data, { newColumns: cols })} canAddRows={field.user_can_add_rows} canAddCols={field.user_can_add_columns} isReviewMode={!isEditable || !!field.readOnly} label={field.label} activeColumnKey={activeColumnKey} onActiveColumnChange={onActiveColumnChange} highlightThreshold={highlightThreshold} />;
 
-     case 'autocomplete':
-      return (
-        <AutocompleteHuertos
-           value={value ?? ''}
-            onChange={(v) => onChange(field.key, v)}
-            disabled={!isEditable}
-            
-          />
-      );
+    case 'autocomplete':
+        // Dependiendo del campo, usamos el componente correspondiente
+        if (field.key === 'huerto_cuartel') {
+            return (
+            <AutocompleteHuerto
+                value={value ?? ''}
+                onChange={(v) => onChange(field.key, v)}
+                disabled={!isEditable}
+            />
+            );
+        }
+
+        if (field.key === 'productor') {
+            return (
+            <AutocompleteProductor
+                value={value ?? ''}
+                onChange={(v) => onChange(field.key, v)}
+                disabled={!isEditable}
+            />
+            );
+        }
+
+        // Si hay otros autocompletados en el futuro, puedes agregarlos aquí
+
+        return <p className="text-sm text-gray-500">Autocomplete no implementado para {field.key}</p>;
+
+
+
 
    
     case "pressure_matrix":

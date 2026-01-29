@@ -23,6 +23,6 @@ const VARIEDAD_A_GRUPO: Record<string, string> = {
 '46-2' :  'IFO RED',
 '90-3' :  'IFO RED',
 'MC51':  'MC',};
-export default VARIEDAD_A_GRUPO;
+//export default VARIEDAD_A_GRUPO;
 
 //ROJAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI', 'GRANNY SMITH'

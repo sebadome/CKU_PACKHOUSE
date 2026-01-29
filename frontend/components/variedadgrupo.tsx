@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
-
-export interface VariedadOption {
-  variedad: string;
-  grupo: string;
-}
+import { VariedadOption } from '../types';
+import { getVariedades } from '../mapvariedadgrupo';
 
 interface Props {
   value: string;
@@ -11,47 +8,32 @@ interface Props {
   disabled?: boolean;
 }
 
-export const VariedadSelect: React.FC<Props> = ({
-  value,
-  onChange,
-  disabled
-}) => {
+const VariedadSelect: React.FC<Props> = ({ value, onChange, disabled }) => {
   const [variedades, setVariedades] = useState<VariedadOption[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch('/api/variedades');
-        const json = await res.json();
-        if (json.success) {
-          setVariedades(json.data);
-        }
-      } catch (err) {
-        console.error('Error cargando variedades', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
+    getVariedades()
+      .then(setVariedades)
+      .finally(() => setLoading(false));
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const variedad = e.target.value;
-    const grupo = variedades.find(v => v.variedad === variedad)?.grupo ?? '';
+    const grupo =
+      variedades.find(v => v.variedad === variedad)?.grupo || '';
+
     onChange(variedad, grupo);
   };
 
   return (
     <select
-      value={value ?? ''}
+      value={value}
       onChange={handleChange}
       disabled={disabled || loading}
       className="w-full rounded border px-2 py-1 text-sm"
     >
       <option value="">-- Seleccionar --</option>
-
       {variedades.map(v => (
         <option key={v.variedad} value={v.variedad}>
           {v.variedad}
@@ -60,4 +42,5 @@ export const VariedadSelect: React.FC<Props> = ({
     </select>
   );
 };
+
 export default VariedadSelect;
