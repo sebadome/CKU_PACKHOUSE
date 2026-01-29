@@ -312,6 +312,28 @@ const ANALISIS_PRECOSECHA_TEMPLATE: FormTemplate = {
                     ],
                 },
             ],
+            initialRows: Array.from({ length: 10 }, (_, i) => ({
+                _id: uuidv4(),
+                n_fruto: (i + 1).toString(),
+                color_fondo: '',
+                color_cubrimiento: '',
+                _isFixed: true
+            })),
+            dependency: {
+              key: 'variedad_rotulada_grupo',
+              value: ['ROJA LISAS','ROJA RAYADAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI','IFO RED','MC']
+            }
+        },
+        { 
+          key: 'promedio_color_cubrimiento', 
+          label: 'Promedio Color de Cubrimiento (%)', 
+          type: 'decimal', 
+          readOnly: true, 
+          help: 'Cálculo automático.',
+          dependency: {
+            key: 'variedad_rotulada_grupo',
+            value: ['ROJA LISAS','ROJA RAYADAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI','IFO RED','MC']
+          }
         },
 
         {
@@ -368,6 +390,11 @@ const ANALISIS_PRECOSECHA_TEMPLATE: FormTemplate = {
                 { key: 'tecnico', label: 'Técnico (TEC)', type: 'text', help: 'Nombre y Apellido' },
                 { key: 'ayudante', label: 'Ayudante (AYUD.)', type: 'text', help: 'Nombre y Apellido' },
             ],
+            initialRows: [{ _id: uuidv4(), _isFixed: true }],
+            dependency: {
+              key: 'variedad_rotulada_grupo',
+              value: ['ROJA LISAS','ROJA RAYADAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI','IFO RED','MC']
+            }
         },
     ],
 };
@@ -471,6 +498,25 @@ const RECEPCION_MADUREZ_TEMPLATE: FormTemplate = {
                 },
             ]
         },
+
+        { key: 'huerto_cuartel', label: 'HUERTO', type: 'autocomplete' },
+        { key: 'identificacion.n_bins', label: 'N° Bins', type: 'text' },
+        { key: 'encabezado.folio_cku', label: 'FOLIO CKU', type: 'text' },
+        { key: 'datos_cosecha.n_carta_cosecha', label: 'N° CARTA COSECHA', type: 'text' },
+        { key: 'datos_cosecha.n_guia_entrada', label: 'N° GUÍA ENTRADA', type: 'text' },
+        { key: 'datos_cosecha.fecha_cosecha', label: 'FECHA COSECHA', type: 'date' },
+        { key: 'datos_cosecha.fecha_revision', label: 'FECHA REVISIÓN', type: 'date' },
+        { key: 'datos_cosecha.hora_ingreso_camion', label: 'HORA INGRESO CAMIÓN', type: 'time' },
+      ]
+    },
+    {
+      key: 'madurez_parciales',
+      title: '2. MADUREZ – Calibre Grande (Parciales, Presiones y % Sólidos Solubles)',
+      fields: [
+        { key: 'madurez.calibre', label: 'Calibre', type: 'text', readOnly: true },
+        { key: 'madurez.solidos_solubles', label: '% Sólidos Solubles', type: 'decimal', help: 'Ej: 12.5' },
+
+
         {
             key: 'madurez_mediano',
             title: '3. MADUREZ – Calibre Mediano (Parciales, Presiones y % Sólidos Solubles)',
@@ -872,7 +918,7 @@ const PROYECCION_EMBALAJE_TEMPLATE: FormTemplate = {
                     initialRows: [{ _id: uuidv4(), _isFixed: true }],
                     dependency: {
                         key: 'recepcion.variedad_rotulada_grupo',
-                        value: ['ROJAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI']
+                        value: ['ROJA LISAS','ROJA RAYADAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI','GRANNYS','IFO RED','MC']
                     }
                 }
             ]
@@ -995,6 +1041,9 @@ const PROYECCION_EMBALAJE_TEMPLATE: FormTemplate = {
     ]
 };
 
+ 
+
+ 
 // ATMÓSFERA CONTROLADA POMÁCEAS template
 // ✅ AC_RECEPCION_TEMPLATE (REG.CKU.022) — Bloque corregido y funcional
 // Cambio aplicado: Productor pasa de type:'text' a type:'autocomplete'
@@ -1041,6 +1090,7 @@ const AC_RECEPCION_TEMPLATE: FormTemplate = {
             ],
         },
 
+ 
         {
             key: "step_3_presiones",
             title: "2. Presiones Fruto",
@@ -1684,13 +1734,13 @@ const PRE_EMBARQUE_TEMPLATE: FormTemplate = {
                     columns: [
                         { key: 'folio_pallet', label: 'FOLIO PALLET', type: 'text', required: false },
                         { key: 'n_caja', label: 'N° DE CAJA', type: 'text', required: false },
-                        { key: 'productor', label: 'PRODUCTOR', type: 'text', required: false },
-                        {
-                            key: 'variedad',
-                            label: 'VARIEDAD ROT.',
-                            type: 'select',
-                            options: ['ROJAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI', 'GRANNY SMITH'],
-                            required: false
+                        { key: 'productor', label: 'PRODUCTOR', type: 'autocomplete', required: false },
+                        { 
+                            key: 'variedad', 
+                            label: 'VARIEDAD ROT.', 
+                            type: 'select', 
+                            options: ['ROJA LISAS','ROJA RAYADAS', 'GALA', 'CRIPPS PINK', 'AMBROSIA', 'FUJI', 'KANZI', 'GRANNYS','IFO RED','MC'],
+                            required: false 
                         },
                         {
                             key: 'tipo_frio',

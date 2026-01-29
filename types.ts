@@ -4,6 +4,10 @@ export type UserRole = 'Administrador' | 'Trabajador CKU';
 
 export interface User {
   name: string;
+  apellido:string;
+  email:string;
+  rut:string;
+  planta:string;
   roles: UserRole[];
 }
 
@@ -22,8 +26,13 @@ export type FieldType =
   | 'textarea'
   | 'file'
   | 'dynamic_table'
-  | 'pressure_matrix'
-  | 'autocomplete';  // ← LÍNEA NUEVA
+  | 'pressure_matrix' // NEW: Specific type for nested pressure details
+  | 'autocomplete';
+
+  export interface VariedadOption {
+  variedad: string;
+  grupo: string;
+  }
 
 export interface VariedadOption {
   variedad: string;
@@ -68,8 +77,7 @@ export interface FormField {
   help?: string;
   validations?: FieldValidation;
   options?: string[];
-  dynamicOptions?: string;  // ← LÍNEA NUEVA
-  campo?: string;           // ← LÍNEA NUEVA
+  dynamicOptions?:string;
   catalog?: string;
   series_count?: number;
   columns?: DynamicTableColumn[];
@@ -87,7 +95,9 @@ export interface FormField {
   showSummaryColumns?: boolean; // NEW: Propiedad para mostrar MAX, MIN, X en matrices de presión
   showOnlyAverage?: boolean; // NEW: Propiedad para mostrar solo el promedio en matrices de presión
   isWeightMode?: boolean; // NEW: Indica si la matriz de presiones opera en modo pesos
+  campo?:string;
 }
+
 
 export interface FormSection {
   id?: string; // NEW: Unique ID for the section, optional for mocks

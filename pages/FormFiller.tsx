@@ -24,10 +24,17 @@ import { v4 as uuidv4 } from "uuid";
 import _ from 'lodash';
 import { PressureMatrixManager, PressureEntry } from "../components/PressureMatrixManager";
 import { Modal } from "../components/ui/Modal";
-import VariedadSelect from '../components/variedadgrupo';
-import AutoCompleteHuerto from '../components/AutoCompleteCatalog';
-import AutoCompleteProductor from '../components/AutoCompleteProductor';
-import { finalizeSubmission } from "../api/client";
+import { getDynamicOptions } from "../dynamicOptions";
+import AutocompleteHuertos from "@/components/AutoCompleteCatalog";
+
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
+
+import VariedadSelect from "@/components/variedadgrupo";
+
+import AutocompleteHuerto from "@/components/AutoCompleteCatalog";
+import AutocompleteProductor from "@/components/AutoCompleteProductor";
+
 
 
 interface FormFillerProps {
@@ -50,17 +57,237 @@ const FormFiller: React.FC<FormFillerProps> = ({
     const navigate = useNavigate();
     const { addToast } = useToast();
     const { blockNavigation, confirmExit, shouldConfirmExit } = useNavigationBlocker();
-    const { planta, temporada, getFormattedPlanta } = useGlobalSettings();
+    const { planta, temporada } = useGlobalSettings();
+    const{user}=useContext(AuthContext)
+     
 
     const [template, setTemplate] = useState<FormTemplate | null>(null);
     const [submission, setSubmission] = useState<FormSubmission | null>(null);
     const [activeSection, setActiveSection] = useState(0);
     const [isSaving, setIsSaving] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [dynamicOptionsCache, setDynamicOptionsCache] = useState<Record<string, string[]>>({});
 
     const [isDirty, setIsDirty] = useState(false);
     const fromNewRef = useRef(location.state?.fromNew || false);
     const prevDataRef = useRef<any>(null);
+
+
+    // Modal Guardar Borrador
+    const [isSaveDraftModalOpen, setIsSaveDraftModalOpen] = useState(false);
+    const [draftName, setDraftName] = useState("");
+
+    // Estados activos por plantilla
+    const [activeLineKey, setActiveLineKey] = useState<string>('l1');
+    const [activeFrutoKey, setActiveFrutoKey] = useState<string>('f1');
+    const [activeChannelKey, setActiveChannelKey] = useState<string>('ch1');
+    const [activeFrutaKey, setActiveFrutaKey] = useState<string>('f1');
+
+    const isEditable = useMemo(() => {
+    return !isReadOnly && submission?.status === "Borrador";
+    }, [isReadOnly, submission?.status]);
+
+    // ============================================
+    // PRELOAD DE OPCIONES DINÁMICAS
+    // ============================================
+    useEffect(() => {
+    let mounted = true;
+
+    const load = async () => {
+        if (!template) return;
+
+        const types = new Set<string>();
+        template.sections.forEach(section =>
+        section.fields.forEach(field => {
+            if (field.dynamicOptions) types.add(field.dynamicOptions);
+        })
+        );
+
+        for (const t of Array.from(types)) {
+        try {
+            const opts = await getDynamicOptions(t);
+            if (!mounted) return;
+            setDynamicOptionsCache(prev => ({ ...prev, [t]: opts }));
+        } catch (err) {
+            console.error('Error cargando opciones dinámicas', t, err);
+        }
+        }
+    };
+
+    load();
+    return () => { mounted = false; };
+    }, [template]);
+
+    // ============================================
+    // HANDLE DATA CHANGE
+    // ============================================
+    const handleDataChange = useCallback((
+    key: string,
+    value: any,
+    options?: { newColumns?: any; markAsDirty?: boolean }
+    ) => {
+    setSubmission(prev => {
+        if (!prev) return prev;
+        const next = JSON.parse(JSON.stringify(prev));
+
+        // REG.CKU.013 → disparar matriz
+        if (
+        template?.id === 'REG.CKU.013' &&
+        key === 'recepcion.variedad_rotulada_grupo'
+        ) {
+        const prevValue = _.get(prev.data, key);
+        if (prevValue !== value) {
+            _.set(next.data, 'matriz_categorias_calibre', [
+            { _id: uuidv4(), _isFixed: true }
+            ]);
+        }
+        }
+
+        // REG.CKU.015 → disparar tabla
+        if (
+        template?.id === 'REG.CKU.015' &&
+        key === 'recepcion.variedad_rotulada_grupo'
+        ) {
+        const prevValue = _.get(prev.data, key);
+        if (prevValue !== value) {
+            _.set(next.data, 'tabla_color_cubrimiento', [
+            { _id: uuidv4(), _isFixed: true }
+            ]);
+        }
+        }
+
+        // SET valor base
+        _.set(next.data, key, value);
+
+        // REG.CKU.017 — Autocompletado Productor
+        if (template?.id === 'REG.CKU.017' && key === 'tabla_datos_linea') {
+        const oldTable = _.get(prev.data, key) || [];
+        const newTable = value as any[];
+
+        const oldProdRow = oldTable.find((r: any) => r.concepto === 'Productor');
+        const newProdRow = newTable.find((r: any) => r.concepto === 'Productor');
+
+        if (oldProdRow && newProdRow) {
+            const sourceCalibre = _.get(next.data, 'calibre') || '';
+            const sourceCategoria = _.get(next.data, 'categoria') || '';
+
+            for (let i = 1; i <= 30; i++) {
+            const lineKey = `l${i}`;
+            if (newProdRow[lineKey] !== oldProdRow[lineKey]) {
+                const calRow = newTable.find((r: any) => r.concepto === 'Calibre');
+                const catRow = newTable.find((r: any) => r.concepto === 'Categoría');
+
+                if (newProdRow[lineKey]?.trim()) {
+                if (calRow) calRow[lineKey] = sourceCalibre;
+                if (catRow) catRow[lineKey] = sourceCategoria;
+                } else {
+                if (calRow) calRow[lineKey] = '';
+                if (catRow) catRow[lineKey] = '';
+                }
+            }
+            }
+        }
+        }
+
+        if (options?.newColumns) {
+        if (!next.dynamicSchemas) next.dynamicSchemas = {};
+        next.dynamicSchemas[key] = options.newColumns;
+        }
+
+        return next;
+    });
+
+    if (options?.markAsDirty !== false) {
+        setIsDirty(true);
+        if (errors[key]) {
+        setErrors(prev => {
+            const next = { ...prev };
+            delete next[key];
+            return next;
+        });
+        }
+    }
+    }, [template, errors]);
+
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const templateId = params.get("templateId");
+    let loadedSubmission: FormSubmission | null = null;
+
+    if (id) {
+      const found = findSubmission(id);
+      if (found) {
+        const cloned = JSON.parse(JSON.stringify(found)) as FormSubmission;
+        const tpl = findTemplate(cloned.templateId);
+
+        if (tpl) {
+          tpl.sections.forEach(section => {
+            section.fields.forEach(field => {
+              if (field.type === 'dynamic_table' && _.get(cloned.data, field.key)) {
+                const tableData = _.get(cloned.data, field.key);
+                if (Array.isArray(tableData)) {
+                  const hydratedData = tableData.map((row: any) =>
+                    row._id ? row : { ...row, _id: uuidv4() }
+                  );
+                  _.set(cloned.data, field.key, hydratedData);
+                }
+              }
+            });
+          });
+        }
+        
+        if (!cloned.status) cloned.status = "Borrador";
+        loadedSubmission = cloned;
+        setTemplate(tpl || null);
+      } else {
+        navigate("/");
+        return;
+      }
+    } else if (templateId) {
+      const tpl = findTemplate(templateId);
+      if (tpl) {
+        const s = initializeSubmission(tpl.id);
+        const initialData: Record<string, any> = {};
+        const plantaActual = user?.planta ?? '';
+
+        
+        if (tpl.id === 'REG.CKU.013') {
+            _.set(initialData, 'planta', plantaActual);
+            _.set(initialData, 'tipo_fruta', 'MANZANA');
+            _.set(initialData, 'temporada', temporada);
+        } else if (tpl.id === 'REG.CKU.014') {
+            _.set(initialData, 'encabezado.planta', plantaActual);
+            _.set(initialData, 'encabezado.temporada', temporada);
+            _.set(initialData, 'encabezado.tipo_fruta', 'MANZANA');
+            _.set(initialData, 'madurez.calibre', 'GRANDE');
+            _.set(initialData, 'madurez_mediano.calibre', 'MEDIANO');
+            _.set(initialData, 'madurez_chico.calibre', 'CHICO');
+        } else if (tpl.id === 'REG.CKU.015') {
+            _.set(initialData, 'encabezado.planta', plantaActual);
+            _.set(initialData, 'encabezado.temporada', temporada);
+            _.set(initialData, 'encabezado.tipo_fruta', 'MANZANA');
+            _.set(initialData, 'recepcion.tamano_muestra', 50);
+        } else if (tpl.id === 'REG.CKU.016') {
+            _.set(initialData, 'encabezado.planta', plantaActual);
+            _.set(initialData, 'encabezado.temporada', temporada);
+        } else if (tpl.id === 'REG.CKU.017') {
+            _.set(initialData, 'encabezado.planta', plantaActual);
+            _.set(initialData, 'temporada', temporada);
+            _.set(initialData, 'encabezado.tipo_fruta', 'MANZANA');
+        } else if (tpl.id === 'REG.CKU.018') {
+            _.set(initialData, 'planta', plantaActual);
+            _.set(initialData, 'temporada', temporada);
+            _.set(initialData, 'tipo_fruta', 'MANZANA');
+        } else if (tpl.id === 'REG.CKU.027') {
+            _.set(initialData, 'planta', plantaActual);
+            _.set(initialData, 'encabezado.temporada', temporada);
+            _.set(initialData, 'tipo_fruta', 'MANZANA');
+        } else if (tpl.id === 'REG.CKU.022') {
+            _.set(initialData, 'encabezado.planta', plantaActual);
+            _.set(initialData, 'encabezado.temporada', temporada);
+            _.set(initialData, 'encabezado.tipo_fruta', 'MANZANA');
+        }
 
     // NEW: Estados para el modal de Guardar Borrador
     const [isSaveDraftModalOpen, setIsSaveDraftModalOpen] = useState(false);
@@ -138,8 +365,33 @@ const FormFiller: React.FC<FormFillerProps> = ({
                     const newTable = value as any[];
                     const calibreMuestra = Number(_.get(next.data, 'calibre')) || 1;
 
+
                     newTable.forEach((row, rIdx) => {
                         const oldRow = oldTable[rIdx];
+
+
+    if (loadedSubmission) {
+      setSubmission(loadedSubmission);
+      setIsDirty(!id); 
+    }
+    
+    return () => {
+      blockNavigation(false);
+    };
+  }, [id, location.search, findSubmission, findTemplate, initializeSubmission, user?.planta, temporada, navigate, blockNavigation]);
+
+  useEffect(() => {
+    if (!submission || !template || !isEditable) return;
+    const plantaActual = user?.planta ?? '';
+
+    
+    // Determinación de la key de planta según la plantilla
+    let plantaKey = 'planta'; // Default para 013, 018, 027
+    if (template.id === 'REG.CKU.014' || template.id === 'REG.CKU.015' || template.id === 'REG.CKU.022') {
+        plantaKey = 'encabezado.planta';
+    } else if (template.id === 'REG.CKU.017') {
+        plantaKey = 'encabezado.planta';
+    }
 
                         // Evitamos procesar filas especiales que no son de ingreso numérico directo a %
                         const isSummary = row.concepto === 'Comercial' || row.concepto === '% Comercial' || row.concepto === 'Resolución';
@@ -147,6 +399,7 @@ const FormFiller: React.FC<FormFillerProps> = ({
                             if (row.promedio_fila !== '') row.promedio_fila = '';
                             return;
                         }
+
 
                         let rowSumUnits = 0; let rowCount = 0;
 
@@ -228,6 +481,67 @@ const FormFiller: React.FC<FormFillerProps> = ({
             return next;
         });
 
+    }
+  }, [user?.planta, temporada, template?.id, isEditable, ]);
+
+  useEffect(() => {
+    if (!template || !submission) return;
+
+    let variety: string | undefined;
+    let targetTableKey: string | undefined;
+
+    if (template.id === 'REG.CKU.013') {
+        variety = submission.data.variedad_rotulada_grupo;
+        targetTableKey = 'matriz_categorias_calibre';
+    } else if (template.id === 'REG.CKU.015') {
+        variety = _.get(submission.data, 'recepcion.variedad_rotulada_grupo');
+        targetTableKey = 'tabla_color_cubrimiento';
+    }
+
+    if (variety && targetTableKey) {
+      let labels: string[] | null = null;
+      if (variety === 'ROJA LISAS') labels = ["+95", "+85", "+76", "-76"];
+      else if (variety === 'ROJA RAYADAS') labels = ["+95", "+85", "+76", "-76"];
+      else if (variety === 'GALA') labels = ["+50", "+50", "+30", "-30"];
+      else if (variety === 'CRIPPS PINK') labels = ["+40", "+30", "-30"];
+      else if (variety === 'AMBROSIA') labels = ["+40", "+10", "-10"];
+      else if (variety === 'FUJI') labels = ["+60", "+40", "-4"];
+      else if (variety === 'KANZI') labels = ["+30", "-30"];
+      else if (variety === 'GRANNYS') labels = ["+NA", "+NA", "-NA"];
+      else if (variety === 'IFO RED') labels = ["+NA", "+NA", "-NA"];
+      else if (variety === 'MC') labels = ["+NA", "+NA", "-NA"];
+
+      if (labels) {
+        const newCols: DynamicTableColumn[] = labels.map((label, i) => ({
+          key: `cat_${i}`, 
+          label,
+          type: 'integer',
+          required: false
+        }));
+
+        const currentSchema = submission.dynamicSchemas?.[targetTableKey];
+        const currentLabels = currentSchema ? currentSchema.map(c => c.label) : [];
+        
+        if (JSON.stringify(currentLabels) !== JSON.stringify(labels)) {
+           setSubmission(prev => {
+             if (!prev) return prev;
+             const next = { ...prev };
+             if (!next.dynamicSchemas) next.dynamicSchemas = {};
+             next.dynamicSchemas[targetTableKey!] = newCols;
+             return next;
+           });
+        }
+      } else {
+        if (submission.dynamicSchemas?.[targetTableKey]) {
+          setSubmission(prev => {
+            if (!prev) return prev;
+            const next = { ...prev };
+            if (next.dynamicSchemas) {
+              const updatedSchemas = { ...next.dynamicSchemas };
+              delete updatedSchemas[targetTableKey!];
+              next.dynamicSchemas = updatedSchemas;
+
+
         if (options?.markAsDirty !== false) {
             setIsDirty(true);
             if (errors[key]) {
@@ -236,6 +550,7 @@ const FormFiller: React.FC<FormFillerProps> = ({
                     delete next[key];
                     return next;
                 });
+
             }
         }
     }, [errors, template?.id]);
@@ -1443,6 +1758,25 @@ const FormFiller: React.FC<FormFillerProps> = ({
         if (validateCurrentSection()) { setActiveSection(p => p + 1); window.scrollTo(0, 0); }
     };
 
+    
+    saveSubmission(toPersist);
+    if (!id) navigate(`/forms/fill/${toPersist.id}?templateId=${toPersist.templateId}`, { replace: true });
+    setIsDirty(false); setErrors({});
+    addToast({ message: "Borrador guardado", type: "success" });
+    setTimeout(() => setIsSaving(false), 400);
+  };
+
+  const handleSubmit = (newStatus: FormStatus) => {
+    if (!submission || !template) return;
+    if (!validateCurrentSection()) return;
+    const finalSubmission: FormSubmission = { ...submission, status: newStatus, updatedAt: new Date().toISOString() };
+    saveSubmission(finalSubmission);
+    setIsDirty(false); blockNavigation(false);
+    addToast({ message: `Registro ${newStatus.toLowerCase()}`, type: "success" });
+    navigate(isReadOnly ? "/records" : "/");
+  };
+
+
     const handleOpenDraftModal = () => {
         if (!submission) return;
         setDraftName(submission.customName || template?.title || "");
@@ -1516,6 +1850,7 @@ const FormFiller: React.FC<FormFillerProps> = ({
     const isEmpaqueStep4 = template.id === 'REG.CKU.017' && activeSection === 3;
     const isPresizerStep4 = template.id === 'REG.CKU.018' && activeSection === 3;
     const isPresizerStep5 = template.id === 'REG.CKU.018' && activeSection === 4;
+ 
 
     const lineOptions = Array.from({ length: 30 }, (_, i) => (i + 1).toString());
     const fruitOptions = Array.from({ length: 30 }, (_, i) => (i + 1).toString());
@@ -1599,7 +1934,36 @@ const FormFiller: React.FC<FormFillerProps> = ({
                                         Seleccione el número de fruta para resaltar su columna. Al hacer clic en cualquier celda de la tabla, el selector se actualizará automáticamente.
                                     </p>
                                 </div>
+ 
+                                {field.help && <p className="text-sm text-gray-500 mt-1 mb-2">{field.help}</p>}
+                                <RenderField
+                                field={field}
+                                value={_.get(submission.data, field.key)}
+                                onChange={(key, val, extra) => handleDataChange(key, val, extra)}
+                                dynamicOptionsCache={dynamicOptionsCache}
+                                isEditable={isEditable}
+                                dynamicSchema={submission.dynamicSchemas?.[field.key]}
+                                error={errors[field.key]}
+                                activeColumnKey={
+                                    isEmpaqueStep3 ? activeLineKey : 
+                                    (isEmpaqueStep4 && field.key === 'tabla_mercado_interno' ? activeFrutoKey : 
+                                    (isPresizerStep4 && (field.key === 'tabla_datos_canal' || field.key === 'tabla_fuera_categoria_canal' || field.key === 'tabla_danos_defectos_canal') ? activeChannelKey : 
+                                    (isPresizerStep5 && field.key === 'tabla_mercado_interno' ? activeFrutaKey : undefined)))
+                                }
+                                onActiveColumnChange={
+                                    isEmpaqueStep3 ? setActiveLineKey : 
+                                    (isEmpaqueStep4 && field.key === 'tabla_mercado_interno' ? setActiveFrutoKey : 
+                                    (isPresizerStep4 && (field.key === 'tabla_datos_canal' || field.key === 'tabla_fuera_categoria_canal' || field.key === 'tabla_danos_defectos_canal') ? setActiveChannelKey : 
+                                    (isPresizerStep5 && field.key === 'tabla_mercado_interno' ? (key) => setActiveFrutaKey(key) : undefined)))
+                                }
+                                highlightThreshold={field.key === 'tabla_control_peso' ? submission.data.umbral_peso : undefined}
+                                />
+                            </div>
+                        )
+                        })}
+
                             )}
+
 
                             {isPresizerStep4 && (
                                 <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-8 flex flex-col sm:flex-row items-center gap-4 animate-fade-in shadow-sm">

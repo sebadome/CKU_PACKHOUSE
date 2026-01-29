@@ -23,7 +23,8 @@ const Layout: React.FC = () => {
 
 const Header: React.FC = () => {
   const { user, role, logout } = useContext(AuthContext);
-  const { planta, setPlanta, temporada, setTemporada } = useGlobalSettings();
+  const { temporada, setTemporada } = useGlobalSettings();
+  const planta=user?.planta??'';
   const { confirmExit, shouldConfirmExit } = useNavigationBlocker();
   const navigate = useNavigate();
 
@@ -83,18 +84,18 @@ const Header: React.FC = () => {
             <Select 
               name="planta" 
               value={planta}
-              onChange={(e) => setPlanta(e.target.value)}
-              aria-label="Planta" 
+              aria-label="Planta"
               className="w-28 md:w-36 lg:w-48 text-xs sm:text-sm flex-shrink-0"
             >
-              <option value="copiapo">Planta: Copiapó</option>
-              <option value="coquimbo">Planta: Coquimbo</option>
-              <option value="san_felipe">Planta: San Felipe</option>
-              <option value="linderos">Planta: Linderos</option>
-              <option value="requinoa">Planta: Requinoa</option>
-              <option value="teno">Planta: Teno</option>
-              <option value="linares">Planta: Linares</option>
+              <option value={planta}>
+                Planta: {planta
+                  .split('_')
+                  .map(w => w[0].toUpperCase() + w.slice(1))
+                  .join(' ')
+                }
+              </option>
             </Select>
+
             <Select 
               name="temporada" 
               value={temporada}
