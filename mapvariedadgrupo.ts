@@ -6,7 +6,10 @@ export const getVariedades = async (): Promise<VariedadOption[]> => {
   if (!res.ok) return [];
 
   const json = await res.json();
-  return json.data;
-};
 
+
+
+
+  return json.data || []; //vct : antes era return json.data;
+};
 

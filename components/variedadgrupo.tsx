@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
-import React from 'react';
 import { VariedadOption } from '../types';
 import { getVariedades } from '../mapvariedadgrupo';
-
 
 interface Props {
   value: string;

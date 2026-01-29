@@ -13,17 +13,17 @@ export interface User {
 
 export type TemplateStatus = 'Borrador' | 'Publicada' | 'Deprecada';
 
-export type FieldType = 
-  | 'text' 
-  | 'integer' 
-  | 'decimal' 
-  | 'date' 
-  | 'time' 
-  | 'boolean' 
-  | 'select' 
-  | 'multiselect' 
-  | 'measure_series' 
-  | 'textarea' // Replaces 'observation' for clarity
+export type FieldType =
+  | 'text'
+  | 'integer'
+  | 'decimal'
+  | 'date'
+  | 'time'
+  | 'boolean'
+  | 'select'
+  | 'multiselect'
+  | 'measure_series'
+  | 'textarea'
   | 'file'
   | 'dynamic_table'
   | 'pressure_matrix' // NEW: Specific type for nested pressure details
@@ -34,6 +34,10 @@ export type FieldType =
   grupo: string;
   }
 
+export interface VariedadOption {
+  variedad: string;
+  grupo: string;
+}
 export interface FieldValidation {
   min?: number;
   max?: number;
@@ -75,7 +79,7 @@ export interface FormField {
   options?: string[];
   dynamicOptions?:string;
   catalog?: string;
-  series_count?: number; 
+  series_count?: number;
   columns?: DynamicTableColumn[];
   initialRows?: Record<string, any>[]; // NEW: Allow admins to set default rows
   user_can_add_columns?: boolean;

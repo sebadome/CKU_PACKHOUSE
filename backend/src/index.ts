@@ -3,6 +3,9 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import { env } from "./config/env";
 import { submissionsRouter } from "./routes/submissions.routes";
+const catalogoRoutes = require('./routes/catalogo');
+const productoresRoutes = require('./routes/productores');
+const variedadesRoutes = require('./routes/variedades');
 
 const app = express();
 
@@ -64,10 +67,15 @@ app.get("/health", (_req: Request, res: Response) => {
 // -----------------------
 app.use("/api/submissions", submissionsRouter);
 
+
 //----------------------------------------------------//
 //RUTAS PARA VARIEDADES Y LOGIN//
 
-app.use('/api/variedades', require('./routes/variedades'));
+app.use('/api/catalogo', catalogoRoutes);
+app.use('/api/productores', productoresRoutes);
+app.use('/api/variedades', variedadesRoutes);
+//////
+//app.use('/api/variedades', require('./routes/variedades'));//antes estaba asi
 app.use('/api/auth', require('./routes/auth'));
 
 // ------------------------------------------------------------//
@@ -117,6 +125,11 @@ app.get('/api/catalogo/autocomplete/productor', async (req, res) => {
 });
 // ---------------------------
 
+
+
+app.use('/api/catalogo', catalogoRoutes);
+app.use('/api/productores', productoresRoutes);
+app.use('/api/variedades', variedadesRoutes);
 
 // -----------------------
 // 404

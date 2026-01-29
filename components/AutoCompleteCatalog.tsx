@@ -7,14 +7,13 @@ interface Props {
   disabled?: boolean;
 }
 
-const AutocompleteHuerto: React.FC<Props> = ({ value, onChange }) => {
+const AutocompleteHuerto: React.FC<Props> = ({ value, onChange, disabled }) => {
+  // ↑ AGREGADO: disabled
   const [options, setOptions] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Función que busca opciones en la API
   const buscar = async (q: string) => {
-    console.log('buscando huertos para:', q);
     if (!q || q.length < 2) {
       setOptions([]);
       setOpen(false);
@@ -22,13 +21,11 @@ const AutocompleteHuerto: React.FC<Props> = ({ value, onChange }) => {
     }
 
     const url = `http://localhost:4000/api/catalogo/autocomplete/huerto?q=${encodeURIComponent(q)}`;
-    console.log('Autocomplete fetch URL:', url);
 
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`Error en fetch: ${res.statusText}`);
       const data: string[] = await res.json();
-      console.log('datos recibidos:', data);
 
       setOptions(data);
       setOpen(data.length > 0);
@@ -39,7 +36,6 @@ const AutocompleteHuerto: React.FC<Props> = ({ value, onChange }) => {
     }
   };
 
-  // Cerrar dropdown al hacer click afuera
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (!containerRef.current?.contains(e.target as Node)) {
@@ -62,6 +58,7 @@ const AutocompleteHuerto: React.FC<Props> = ({ value, onChange }) => {
         onFocus={() => value && buscar(value)}
         placeholder="Escriba nombre de huerto"
         autoComplete="off"
+        disabled={disabled}  // ← AGREGADO: pasar disabled al Input
       />
 
       {open && options.length > 0 && (
