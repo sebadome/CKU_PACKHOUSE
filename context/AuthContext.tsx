@@ -1,87 +1,148 @@
-
-import React, { createContext, useState, useMemo, useCallback } from 'react';
+import React, {
+  createContext,
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+} from 'react';
 import { User, UserRole } from '../types';
+
+interface RegisterPayload {
+  name: string;
+  apellido: string;
+  rut: string;
+  email: string;
+  planta: string;
+  password: string;
+  roles: UserRole;
+}
 
 interface AuthContextType {
   user: User | null;
   role: UserRole | null;
+  planta: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (rut: string, pass: string) => Promise<void>;
+  login: (rut: string, password: string) => Promise<void>;
+  register: (data: RegisterPayload) => Promise<void>;
   logout: () => void;
-  // setRole se elimina porque el rol depende del usuario logueado, no de una selección manual
 }
 
-export const AuthContext = createContext<AuthContextType>({
-  user: null,
-  role: null,
-  isAuthenticated: false,
-  isLoading: false,
-  login: async () => {},
-  logout: () => {},
-});
+export const AuthContext = createContext<AuthContextType>(null!);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // El rol actual se deriva del primer rol del usuario logueado
-  const role = useMemo(() => user?.roles[0] || null, [user]);
+  /* =========================
+     REHIDRATAR SESIÓN
+  ========================== */
+  useEffect(() => {
+    const stored = localStorage.getItem('user');
+    if (stored) {
+      setUser(JSON.parse(stored));
+    }
+    setIsLoading(false);
+  }, []);
+
+  /* =========================
+     DERIVADOS
+  ========================== */
+  const role = useMemo<UserRole | null>(
+    () => (user ? user.roles : null),
+    [user]
+  );
+  const planta = useMemo(
+    () => user?.planta ?? null,
+    [user]
+  );
+
+
   const isAuthenticated = useMemo(() => !!user, [user]);
 
-  const login = useCallback(async (rutInput: string, passInput: string) => {
+  /* =========================
+     LOGIN
+  ========================== */
+  const login = useCallback(async (rut: string, password: string) => {
     setIsLoading(true);
-    
-    // SIMULACIÓN DE BACKEND SQL
-    // Aquí iría la llamada a la API: await api.post('/login', { rut, pass })
-    
-    return new Promise<void>((resolve, reject) => {
-      setTimeout(() => {
-        // Normalización de entradas para evitar errores por espacios o formato
-        const rut = rutInput.trim();
-        const pass = passInput.trim();
-        const cleanRut = rut.replace(/\./g, ''); // Permitir RUT sin puntos (ej: 11111111-1)
 
-        // Lógica Mock Hardcodeada
-        // Admin: 11.111.111-1
-        if ((rut === '11.111.111-1' || cleanRut === '11111111-1') && pass === 'Test1234!') {
-           setUser({
-             name: 'Administrador Sistema',
-             roles: ['Administrador']
-           });
-           resolve();
-        } 
-        // Trabajador: 22.222.222-2
-        else if ((rut === '22.222.222-2' || cleanRut === '22222222-2') && pass === 'Test1234!') {
-           setUser({
-             name: 'Trabajador Planta',
-             roles: ['Trabajador CKU']
-           });
-           resolve();
-        } else {
-           reject(new Error('Credenciales inválidas'));
-        }
-        setIsLoading(false);
-      }, 800); // Simular delay de red
-    });
+    try {
+      const res = await fetch('http://localhost:4000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rut, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Error de autenticación');
+      }
+
+      const loggedUser: User = {
+        name: data.name,
+        apellido: data.apellido,
+        rut: data.rut,
+        email: data.email,
+        planta: data.planta,
+        roles: data.rol,
+      };
+
+      setUser(loggedUser);
+      localStorage.setItem('user', JSON.stringify(loggedUser));
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
+  /* =========================
+     REGISTER
+  ========================== */
+  const register = useCallback(async (payload: RegisterPayload) => {
+    setIsLoading(true);
+
+    try {
+      const res = await fetch('http://localhost:4000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Error al registrar');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  /* =========================
+     LOGOUT
+  ========================== */
   const logout = useCallback(() => {
     setUser(null);
+    localStorage.removeItem('user');
   }, []);
 
-  const value = useMemo(() => ({
-    user,
-    role,
-    isAuthenticated,
-    isLoading,
-    login,
-    logout
-  }), [user, role, isAuthenticated, isLoading, login, logout]);
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+
+  const value = useMemo(
+    () => ({
+      user,
+      role,
+      planta,
+      isAuthenticated,
+      isLoading,
+      login,
+      register,
+      logout,
+    }),
+    [user, role, planta, isAuthenticated, isLoading, login, register, logout]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

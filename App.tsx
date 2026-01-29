@@ -18,6 +18,8 @@ import { NavigationBlockerProvider } from "./context/NavigationBlockerContext";
 import { ToastProvider } from "./context/ToastContext";
 import { GlobalSettingsProvider } from "./context/GlobalSettingsContext";
 import _ from 'lodash';
+import Registro from "./pages/Register"
+import AuthLanding from "./pages/authlanding";
 
 // Wrapper component to handle Auth logic cleanly
 const AppContent: React.FC = () => {
@@ -77,10 +79,17 @@ const AppContent: React.FC = () => {
     });
   }, []);
 
-  // Si no está autenticado, mostramos Login exclusivamente
-  if (!isAuthenticated) {
-    return <Login />;
-  }
+   // Si no está autenticado, mostramos Login exclusivamente
+ if (!isAuthenticated) {
+  return (
+    <Routes>
+      <Route path="/" element={<AuthLanding />} />
+      <Route path="/login" element={<Login />} />
+     { <Route path="/registro" element={<Registro />} />}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
 
   // Rutas protegidas por Rol
   const ProtectedRoute: React.FC<{ allowedRoles: UserRole[] }> = ({ allowedRoles }) => {

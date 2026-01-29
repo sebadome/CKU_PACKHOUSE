@@ -53,90 +53,88 @@ const FormFiller: React.FC<FormFillerProps> = ({
   isReadOnly,
 }) => {
   const { id } = useParams<{ id: string }>();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { addToast } = useToast();
-  const { blockNavigation, confirmExit, shouldConfirmExit } = useNavigationBlocker();
-  const { user } = useContext(AuthContext);
-  const { temporada } = useGlobalSettings();
-  const planta = user?.planta ?? '';
+    const location = useLocation();
+    const navigate = useNavigate();
+    const { addToast } = useToast();
+    const { blockNavigation, confirmExit, shouldConfirmExit } = useNavigationBlocker();
+    const { planta, temporada } = useGlobalSettings();
+    const{user}=useContext(AuthContext)
+     
 
+    const [template, setTemplate] = useState<FormTemplate | null>(null);
+    const [submission, setSubmission] = useState<FormSubmission | null>(null);
+    const [activeSection, setActiveSection] = useState(0);
+    const [isSaving, setIsSaving] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [dynamicOptionsCache, setDynamicOptionsCache] = useState<Record<string, string[]>>({});
 
-  const [template, setTemplate] = useState<FormTemplate | null>(null);
-  const [submission, setSubmission] = useState<FormSubmission | null>(null);
-  const [activeSection, setActiveSection] = useState(0);
-  const [isSaving, setIsSaving] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [dynamicOptionsCache, setDynamicOptionsCache] = useState<Record<string, string[]>>({});
-  
-  const [isDirty, setIsDirty] = useState(false);
-  const fromNewRef = useRef(location.state?.fromNew || false);
-  const prevDataRef = useRef<any>(null);
+    const [isDirty, setIsDirty] = useState(false);
+    const fromNewRef = useRef(location.state?.fromNew || false);
+    const prevDataRef = useRef<any>(null);
 
-  // NEW: Estados para el modal de Guardar Borrador
-  const [isSaveDraftModalOpen, setIsSaveDraftModalOpen] = useState(false);
-  const [draftName, setDraftName] = useState("");
+    // Modal Guardar Borrador
+    const [isSaveDraftModalOpen, setIsSaveDraftModalOpen] = useState(false);
+    const [draftName, setDraftName] = useState("");
 
-  // NEW: Estado para la línea activa en el Paso 3 de REG.CKU.017
-  const [activeLineKey, setActiveLineKey] = useState<string>('l1');
-  // NEW: Estado para el fruto activo en el Paso 4 de REG.CKU.017 (Sincronizado con Presizer)
-  const [activeFrutoKey, setActiveFrutoKey] = useState<string>('f1');
-  // NEW: Estado para el canal activo en el Paso 4 de REG.CKU.018 (Presizer)
-  const [activeChannelKey, setActiveChannelKey] = useState<string>('ch1');
-  // NEW: Estado para la fruta activa en el Paso 5 de REG.CKU.018 (Mercado Interno Presizer)
-  const [activeFrutaKey, setActiveFrutaKey] = useState<string>('f1');
+    // Estados activos por plantilla
+    const [activeLineKey, setActiveLineKey] = useState<string>('l1');
+    const [activeFrutoKey, setActiveFrutoKey] = useState<string>('f1');
+    const [activeChannelKey, setActiveChannelKey] = useState<string>('ch1');
+    const [activeFrutaKey, setActiveFrutaKey] = useState<string>('f1');
 
-  const isEditable = useMemo(() => {
+    const isEditable = useMemo(() => {
     return !isReadOnly && submission?.status === "Borrador";
-  }, [isReadOnly, submission?.status]);
+    }, [isReadOnly, submission?.status]);
 
-    // Preload dynamic options declared in the template (e.g. 'variedades')
+    // ============================================
+    // PRELOAD DE OPCIONES DINÁMICAS
+    // ============================================
     useEffect(() => {
-        let mounted = true;
-        const load = async () => {
-            if (!template) return;
-            const types = new Set<string>();
-            for (const section of template.sections) {
-                for (const field of section.fields) {
-                    if (field.dynamicOptions) types.add(field.dynamicOptions);
-                }
-            }
-            for (const t of Array.from(types)) {
-                try {
-                    const opts = await getDynamicOptions(t);
-                    if (!mounted) return;
-                    setDynamicOptionsCache(prev => ({ ...prev, [t]: opts }));
-                } catch (err) {
-                    console.error('Error cargando opciones dinámicas', t, err);
-                }
-            }
-        };
-        load();
-        return () => { mounted = false; };
+    let mounted = true;
+
+    const load = async () => {
+        if (!template) return;
+
+        const types = new Set<string>();
+        template.sections.forEach(section =>
+        section.fields.forEach(field => {
+            if (field.dynamicOptions) types.add(field.dynamicOptions);
+        })
+        );
+
+        for (const t of Array.from(types)) {
+        try {
+            const opts = await getDynamicOptions(t);
+            if (!mounted) return;
+            setDynamicOptionsCache(prev => ({ ...prev, [t]: opts }));
+        } catch (err) {
+            console.error('Error cargando opciones dinámicas', t, err);
+        }
+        }
+    };
+
+    load();
+    return () => { mounted = false; };
     }, [template]);
 
-  const handleDataChange = useCallback((
+    // ============================================
+    // HANDLE DATA CHANGE
+    // ============================================
+    const handleDataChange = useCallback((
     key: string,
     value: any,
     options?: { newColumns?: any; markAsDirty?: boolean }
     ) => {
-    setSubmission((prev) => {
+    setSubmission(prev => {
         if (!prev) return prev;
-
         const next = JSON.parse(JSON.stringify(prev));
 
-      
-
-
-        // ============================================
-        // 2️⃣ DISPARAR MATRIZ – REG.CKU.013
-        // ============================================
+        // REG.CKU.013 → disparar matriz
         if (
         template?.id === 'REG.CKU.013' &&
         key === 'recepcion.variedad_rotulada_grupo'
         ) {
         const prevValue = _.get(prev.data, key);
-
         if (prevValue !== value) {
             _.set(next.data, 'matriz_categorias_calibre', [
             { _id: uuidv4(), _isFixed: true }
@@ -144,16 +142,12 @@ const FormFiller: React.FC<FormFillerProps> = ({
         }
         }
 
-
-        // ============================================
-        // 3️⃣ DISPARAR MATRIZ – REG.CKU.015
-        // ============================================
+        // REG.CKU.015 → disparar tabla
         if (
         template?.id === 'REG.CKU.015' &&
         key === 'recepcion.variedad_rotulada_grupo'
         ) {
         const prevValue = _.get(prev.data, key);
-
         if (prevValue !== value) {
             _.set(next.data, 'tabla_color_cubrimiento', [
             { _id: uuidv4(), _isFixed: true }
@@ -161,154 +155,59 @@ const FormFiller: React.FC<FormFillerProps> = ({
         }
         }
 
-        // ============================================
-        // 4️⃣ SET VALOR ORIGINAL
-        // ============================================
+        // SET valor base
         _.set(next.data, key, value);
 
-       
-    
-   
+        // REG.CKU.017 — Autocompletado Productor
+        if (template?.id === 'REG.CKU.017' && key === 'tabla_datos_linea') {
+        const oldTable = _.get(prev.data, key) || [];
+        const newTable = value as any[];
 
+        const oldProdRow = oldTable.find((r: any) => r.concepto === 'Productor');
+        const newProdRow = newTable.find((r: any) => r.concepto === 'Productor');
 
-      // --- Lógica específica para REG.CKU.017 (Empaque) ---
-      if (template?.id === 'REG.CKU.017') {
-        // Autocompletado INDEPENDIENTE al editar 'Productor' DENTRO de la matriz 3A
-        if (key === 'tabla_datos_linea') {
-          const oldTable = _.get(prev.data, 'tabla_datos_linea') || [];
-          const newTable = value as any[];
-          
-          const oldProdRow = oldTable.find((r: any) => r.concepto === 'Productor');
-          const newProdRow = newTable.find((r: any) => r.concepto === 'Productor');
-          
-          if (oldProdRow && newProdRow) {
+        if (oldProdRow && newProdRow) {
             const sourceCalibre = _.get(next.data, 'calibre') || '';
             const sourceCategoria = _.get(next.data, 'categoria') || '';
-            
+
             for (let i = 1; i <= 30; i++) {
-              const lineKey = `l${i}`;
-              if (newProdRow[lineKey] !== oldProdRow[lineKey]) {
+            const lineKey = `l${i}`;
+            if (newProdRow[lineKey] !== oldProdRow[lineKey]) {
                 const calRow = newTable.find((r: any) => r.concepto === 'Calibre');
                 const catRow = newTable.find((r: any) => r.concepto === 'Categoría');
-                if (newProdRow[lineKey] && newProdRow[lineKey].trim() !== '') {
-                  if (calRow) calRow[lineKey] = sourceCalibre;
-                  if (catRow) catRow[lineKey] = sourceCategoria;
+
+                if (newProdRow[lineKey]?.trim()) {
+                if (calRow) calRow[lineKey] = sourceCalibre;
+                if (catRow) catRow[lineKey] = sourceCategoria;
                 } else {
-                  if (calRow) calRow[lineKey] = '';
-                  if (catRow) catRow[lineKey] = '';
+                if (calRow) calRow[lineKey] = '';
+                if (catRow) catRow[lineKey] = '';
                 }
-              }
             }
-          }
+            }
+        }
         }
 
-        // --- LÓGICA: Conversión Unidades -> Porcentaje en 3B y 3C ---
-        if (key === 'tabla_danos_defectos' || key === 'tabla_fuera_categoria') {
-            const oldTable = _.get(prev.data, key) || [];
-            const newTable = value as any[];
-            const calibreMuestra = Number(_.get(next.data, 'calibre')) || 1;
-
-            newTable.forEach((row, rIdx) => {
-                const oldRow = oldTable[rIdx];
-                
-                // Evitamos procesar filas especiales que no son de ingreso numérico directo a %
-                const isSummary = row.concepto === 'Comercial' || row.concepto === '% Comercial' || row.concepto === 'Resolución';
-                if (isSummary) {
-                    if (row.promedio_fila !== '') row.promedio_fila = '';
-                    return;
-                }
-
-                let rowSumUnits = 0;                let rowCount = 0;
-
-                for (let i = 1; i <= 30; i++) {
-                    const lk = `l${i}`;
-                    const currentVal = row[lk];
-
-                    if (currentVal !== '' && currentVal !== null && currentVal !== undefined) {
-                        rowCount++;
-                        let units = 0;
-                        
-                        // Si la celda cambió, asumimos que el usuario ingresó UNIDADES originales
-                        if (!oldRow || currentVal !== oldRow[lk]) {
-                            units = parseFloat(currentVal);
-                            if (!isNaN(units)) {
-                                rowSumUnits += units;
-                                // Convertimos visualmente a porcentaje
-                                const percent = (units / calibreMuestra) * 100;
-                                row[lk] = parseFloat(percent.toFixed(1));
-                            }
-                        } else {
-                            // La celda no cambió, es un porcentaje. Revertimos a unidades para el promedio
-                            const percent = parseFloat(currentVal);
-                            if (!isNaN(percent)) {
-                                units = Math.round((percent * calibreMuestra) / 100);
-                                rowSumUnits += units;
-                            }
-                        }
-                    }
-                }
-
-                // Cálculo del promedio basado en unidades (frutos)
-                row.promedio_fila = rowCount > 0 ? parseFloat((rowSumUnits / rowCount).toFixed(2)) : '';
-            });
+        if (options?.newColumns) {
+        if (!next.dynamicSchemas) next.dynamicSchemas = {};
+        next.dynamicSchemas[key] = options.newColumns;
         }
-      }
 
-      // --- Lógica específica para REG.CKU.018 (Presizer) - Conversión 4B y 4C ---
-      if (template?.id === 'REG.CKU.018') {
-        const table4A = _.get(next.data, 'tabla_datos_canal') || [];
-        const fruitsRow4A = table4A.find((r: any) => r.concepto === 'Nº Frutos');
-
-        // REUTILIZACIÓN DE LÓGICA DE 4B EN 4C
-        if (key === 'tabla_fuera_categoria_canal' || key === 'tabla_danos_defectos_canal') {
-          const oldTable = _.get(prev.data, key) || [];
-          const newTable = value as any[];
-
-          if (fruitsRow4A) {
-            newTable.forEach((row, rIdx) => {
-              // Evitar procesar filas de resumen o metadatos
-              if (['Comercial', '% Comercial', 'Calibre', '% Calibre', 'Resolución'].includes(row.concepto)) return;
-              
-              const oldRow = oldTable[rIdx];
-              for (let i = 1; i <= 50; i++) {
-                const chKey = `ch${i}`;
-                const currentVal = row[chKey];
-                const oldVal = oldRow ? oldRow[chKey] : undefined;
-
-                // EXACTAMENTE la misma rutina de 4B: si cambió, tratar como unidades y convertir a %
-                if (currentVal !== oldVal && currentVal !== '' && currentVal !== null && currentVal !== undefined) {
-                  const totalFrutos = parseFloat(fruitsRow4A[chKey]);
-                  if (!isNaN(totalFrutos) && totalFrutos > 0) {
-                    const units = parseFloat(currentVal);
-                    if (!isNaN(units)) {
-                      row[chKey] = parseFloat(((units / totalFrutos) * 100).toFixed(2));
-                    }
-                  }
-                }
-              }
-            });
-          }
-        }
-      }
-      
-      if (options?.newColumns) {
-         if (!next.dynamicSchemas) next.dynamicSchemas = {};
-         next.dynamicSchemas[key] = options.newColumns;
-      }
-      return next;
+        return next;
     });
 
     if (options?.markAsDirty !== false) {
         setIsDirty(true);
         if (errors[key]) {
-            setErrors(prev => {
-                const next = { ...prev };
-                delete next[key];
-                return next;
-            });
+        setErrors(prev => {
+            const next = { ...prev };
+            delete next[key];
+            return next;
+        });
         }
     }
-  }, [errors, template?.id]);
+    }, [template, errors]);
+
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);

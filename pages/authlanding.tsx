@@ -38,12 +38,12 @@ const AuthLanding: React.FC = () => {
               Iniciar sesión
             </Button>
 
-              {/* <Button
+              { <Button
               className="w-full bg-cku-blue hover:bg-blue-800 text-white"
               onClick={() => navigate('/registro')}
             >
               Registrarse
-            </Button> */}
+            </Button> }
 
             <div className="mt-6 text-center text-xs text-gray-400">
               <p>Acceso restringido a personal autorizado.</p>

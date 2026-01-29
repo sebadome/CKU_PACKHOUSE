@@ -4,6 +4,10 @@ export type UserRole = 'Administrador' | 'Trabajador CKU';
 
 export interface User {
   name: string;
+  apellido:string;
+  email:string;
+  rut:string;
+  planta:string;
   roles: UserRole[];
 }
 

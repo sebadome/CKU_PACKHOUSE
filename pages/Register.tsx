@@ -8,13 +8,13 @@ const Registro: React.FC = () => {
   const navigate = useNavigate();
   const { register, isLoading } = useContext(AuthContext);
 
-  const [nombre, setNombre] = useState("");
+  const [name, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
   const [planta, setPlanta] = useState("");
   const [rut, setRut] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rol, setRol] = useState<"Trabajador CKU" | "Administrador">(
+  const [roles, setRol] = useState<"Trabajador CKU" | "Administrador">(
     "Trabajador CKU"
   );
   const [msg, setMsg] = useState("");
@@ -23,17 +23,17 @@ const Registro: React.FC = () => {
     e.preventDefault();
 
     const payload = {
-      nombre: nombre.trim(),
+      name: name.trim(),
       apellido: apellido.trim(),
       planta: planta.trim(),
       rut: rut.trim(),
       email: email.trim().toLowerCase(),
       password: password.trim(),
-      rol,
+      roles,
     };
 
     if (
-      !payload.nombre ||
+      !payload.name ||
       !payload.apellido ||
       !payload.rut ||
       !payload.email ||
@@ -61,7 +61,7 @@ const Registro: React.FC = () => {
       >
         <h2 className="text-xl font-semibold text-center">Registro</h2>
 
-        <Input label="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} />
+        <Input label="Nombre" value={name} onChange={e => setNombre(e.target.value)} />
         <Input label="Apellido" value={apellido} onChange={e => setApellido(e.target.value)} />
         <Input label="Rut" value={rut} maxLength={12} onChange={(e) => {const value = e.target.value.slice(0, 12);setRut(value);}} />
         <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
@@ -83,11 +83,11 @@ const Registro: React.FC = () => {
         <div>
           <label className="block text-sm font-medium mb-1">Rol</label>
           <select
-            value={rol}
+            value={roles}
             onChange={e => setRol(e.target.value as any)}
             className="w-full border rounded-lg px-3 py-2"
           >
-            <option value="Trabajador CKU">Trabajador CKU</option>
+            <option value=" Trabajador CKU"> Trabajador CKU</option>
             <option value="Administrador">Administrador</option>
           </select>
         </div>

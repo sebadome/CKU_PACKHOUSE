@@ -15,7 +15,7 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ message: 'Faltan campos' });
   }
 
-  if (!ROLES_VALIDOS.includes(rol)) {
+  if (!ROLES_VALIDOS.includes(roles)) {
     return res.status(400).json({ message: 'Rol inválido' });
   }
 
@@ -45,18 +45,18 @@ router.post('/register', async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
 
     await pool.request()
-      .input('nombre', sql.VarChar(100), nombre)
+      .input('name', sql.VarChar(100), name)
       .input('apellido', sql.VarChar(100), apellido)
       .input('rut', sql.VarChar(12), rut)
       .input('email', sql.VarChar(200), email)
       .input('planta', sql.VarChar(100), planta)
       .input('hash', sql.VarChar, hash)
-      .input('rol', sql.VarChar(50), rol)
+      .input('roles', sql.VarChar(50), roles)
       .query(`
         INSERT INTO dbo.CKU_Usuarios
         (nombre, apellido, rut, email, planta, password_hash, rol)
         VALUES
-        (@nombre, @apellido, @rut, @email, @planta, @hash, @rol)
+        (@name, @apellido, @rut, @email, @planta, @hash, @roles)
       `);
 
     res.status(201).json({ message: 'Usuario creado' });

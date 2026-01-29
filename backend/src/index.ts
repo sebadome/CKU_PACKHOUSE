@@ -6,6 +6,11 @@ import { submissionsRouter } from "./routes/submissions.routes";
 
 const app = express();
 
+app.use(express.json());
+
+
+
+
 import { getPool } from "./db/pool";
 const poolPromise = getPool();
 
@@ -58,6 +63,9 @@ app.get("/health", (_req: Request, res: Response) => {
 // Routes
 // -----------------------
 app.use("/api/submissions", submissionsRouter);
+
+//----------------------------------------------------//
+//RUTAS PARA VARIEDADES Y LOGIN//
 
 app.use('/api/variedades', require('./routes/variedades'));
 app.use('/api/auth', require('./routes/auth'));
