@@ -9,6 +9,7 @@
 
 import { getPool, sql } from "../db/pool";
 import { auditEvent } from "./submissionsCore.service";
+import type { IRecordSet } from "mssql";
 
 interface EmpaquePayload {
   id: string;
@@ -20,13 +21,19 @@ interface EmpaquePayload {
   submittedBy?: string;
 }
 
+type AnyRecord = Record<string, any>;
+
+function normalizeRecordsets(input: unknown): IRecordSet<any>[] {
+  return Array.isArray(input) ? (input as IRecordSet<any>[]) : [];
+}
+
 export async function finalizeEmpaque(payload: EmpaquePayload) {
   const submissionId = payload.id;
   const templateId = payload.templateId || "REG.CKU.017";
   const userName = payload.user?.name || payload.submittedBy || "unknown";
   const userEmail = payload.user?.email || "";
 
-  let counts: Record<string, any> = {};
+  let counts: AnyRecord = {};
 
   try {
     await auditEvent({
@@ -40,6 +47,7 @@ export async function finalizeEmpaque(payload: EmpaquePayload) {
     });
 
     const pool = await getPool();
+
     await pool
       .request()
       .input("submission_id", sql.UniqueIdentifier, submissionId)
@@ -62,10 +70,16 @@ export async function finalizeEmpaque(payload: EmpaquePayload) {
       WHERE submission_id=@sid;
     `;
 
-    const rs = await pool.request().input("sid", sql.UniqueIdentifier, submissionId).query(q);
+    const rs = await pool
+      .request()
+      .input("sid", sql.UniqueIdentifier, submissionId)
+      .query(q);
 
-    const c0 = rs.recordsets?.[0]?.[0] ?? {};
-    const h0 = rs.recordsets?.[1]?.[0] ?? {};
+    // mssql puede tipar recordsets como array o como object map -> normalizamos a array
+    const recordsets = normalizeRecordsets((rs as any).recordsets);
+
+    const c0: AnyRecord = (recordsets[0]?.[0] as AnyRecord) ?? {};
+    const h0: AnyRecord = (recordsets[1]?.[0] as AnyRecord) ?? {};
 
     counts = {
       ...c0,
@@ -85,9 +99,10 @@ export async function finalizeEmpaque(payload: EmpaquePayload) {
     });
 
     return { submissionId, counts };
-  } catch (error: any) {
-    const errMsg = error?.message || String(error);
-    const stack = error?.stack ? String(error.stack).slice(0, 2000) : "";
+  } catch (error: unknown) {
+    const err = error as any;
+    const errMsg = err?.message || String(error);
+    const stack = err?.stack ? String(err.stack).slice(0, 2000) : "";
 
     await auditEvent({
       event_type: "FINALIZE_FAIL",
